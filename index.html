@@ -1,5 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="description" content="소집해제 D-1, 1호선 공익 김공익의 마지막 근무. 어깨빵·쩍벌·보따리 빌런을 경광봉으로 정리하고 인천까지 가자! 16비트 픽셀 벨트스크롤 액션.">
+<meta name="theme-color" content="#0b0a1a">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="지하철 공익 어드벤처">
+<meta property="og:title" content="지하철 공익 어드벤처 · 소집해제 D-1">
+<meta property="og:description" content="소집해제 D-1, 1호선 공익 김공익의 마지막 근무. 어깨빵·쩍벌·보따리 빌런을 경광봉으로 정리하고 인천까지 가자! 16비트 픽셀 벨트스크롤 액션.">
+<meta property="og:url" content="https://sevendayspark.github.io/subway-gongik/">
+<meta property="og:image" content="https://sevendayspark.github.io/subway-gongik/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="지하철 공익 어드벤처 · 소집해제 D-1">
+<meta name="twitter:description" content="소집해제 D-1, 1호선 공익 김공익의 마지막 근무. 어깨빵·쩍벌·보따리 빌런을 경광봉으로 정리하고 인천까지 가자! 16비트 픽셀 벨트스크롤 액션.">
+<meta name="twitter:image" content="https://sevendayspark.github.io/subway-gongik/og.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="공익 어드벤처">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>지하철 공익 어드벤처</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&display=swap">
 <style>
@@ -10,7 +36,8 @@
   --font:"Do Hyeon","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   color-scheme:dark;
 }
-html,body{height:100%}
+html,body{height:100%;margin:0}
+body{position:fixed;inset:0;width:100%;overscroll-behavior:none}
 body{background:var(--bg);color:var(--ink);font-family:var(--font);overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
 #wrap{height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));padding-block:8px}
 body.touch.portrait #wrap{justify-content:center;padding-block:max(14px, env(safe-area-inset-top,0px)) 230px}
@@ -53,6 +80,8 @@ body.danger #game{animation:danger .45s steps(2) infinite}
 @media (prefers-reduced-motion: reduce){.rb.ult.ready,.rb.guide.ready,body.danger #game{animation:none}}
 </style>
 
+</head>
+<body>
 <div id="wrap">
   <canvas id="game" width="960" height="540" tabindex="0" aria-label="지하철 공익 어드벤처 게임 화면"></canvas>
   <div id="keys" aria-label="조작법">
@@ -87,15 +116,21 @@ const g = buf.getContext('2d'); g.imageSmoothingEnabled = false;
 let K = 2;
 const isTouch = (window.matchMedia && matchMedia('(pointer: coarse)').matches) || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
 if (isTouch) document.body.classList.add('touch');
+const UA = navigator.userAgent || '';
+const isKakao = /KAKAOTALK/i.test(UA), isInApp = isKakao || /Instagram|FBAN|FBAV|Line\/|NAVER\(inapp|everytimeApp|DaumApps/i.test(UA);
+const isIOS = /iPhone|iPad|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches));
+if (isKakao && window.top === window && !/^file:|claude/.test(location.href)) { try { location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(location.href); } catch (_) {} }
 
 function fit() {
-  const land = window.innerWidth > window.innerHeight;
+  const vv = window.visualViewport, vw = vv ? vv.width : window.innerWidth, vh = vv ? vv.height : window.innerHeight;
+  const land = vw > vh;
   document.body.classList.toggle('landscape', land);
   document.body.classList.toggle('portrait', !land);
   let aw, ah;
   if (isTouch) {
-    if (land) { aw = window.innerWidth; ah = window.innerHeight; }
-    else { aw = window.innerWidth - 32; ah = window.innerHeight - 250; }
+    if (land) { aw = vw; ah = vh; }
+    else { aw = vw - 32; ah = vh - 250; }
   } else {
     aw = document.getElementById('wrap').clientWidth - 40;
     ah = window.innerHeight - document.getElementById('keys').offsetHeight - 54;
@@ -112,6 +147,9 @@ function fit() {
   ctx.imageSmoothingEnabled = false;
 }
 window.addEventListener('resize', fit);
+if (window.visualViewport) visualViewport.addEventListener('resize', fit);
+document.addEventListener('fullscreenchange', () => setTimeout(fit, 60));
+document.addEventListener('webkitfullscreenchange', () => setTimeout(fit, 60));
 
 
 // ------------------------------------------------------------------ sprites
@@ -174,7 +212,7 @@ document.querySelectorAll('.rb').forEach(b => {
   b.addEventListener('contextmenu', e => e.preventDefault());
 });
 let tapPos = null;
-function setTap(e) { const r = cvs.getBoundingClientRect(); tapPos = { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; pressed.tap = true; }
+function setTap(e) { const r = cvs.getBoundingClientRect(); tapPos = { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; pressed.tap = true; try { tapGesture(tapPos); } catch (_) {} }
 cvs.addEventListener('pointerdown', e => { e.preventDefault(); cvs.focus(); setTap(e); ainit(); });
 
 // analog stick: touch anywhere in the left zone, the base jumps under the thumb
@@ -1809,7 +1847,8 @@ function drawHUD() {
   if (nl > 5) txt(`×${nl}`, 39 + 5 * 15 + 2, 32, 10, '#fff3a0', 'left', false);
   rectK(PAUSE_R.x, PAUSE_R.y, PAUSE_R.w, PAUSE_R.h, '#0e0a1e'); rectK(PAUSE_R.x, PAUSE_R.y, PAUSE_R.w, 1, '#3b3570'); rectK(PAUSE_R.x, PAUSE_R.y + PAUSE_R.h - 1, PAUSE_R.w, 1, '#3b3570');
   rectK(PAUSE_R.x + 8, PAUSE_R.y + 5, 3, 10, '#f4efe4'); rectK(PAUSE_R.x + 15, PAUSE_R.y + 5, 3, 10, '#f4efe4');
-  if (p.hp > 0 && p.hp <= 10 && (tick >> 3) % 2) txt('체력 위험!', 38, 54, 11, '#ff6a5a', 'left');
+  if (showFs()) drawFsBtn(FS_R);
+  if (p.hp > 0 && p.hp <= 10 && (tick >> 3) % 2) txt('체력 위험!', showFs() ? 68 : 38, 54, 11, '#ff6a5a', 'left');
   // route (top-right)
   const prog = clamp(p.x / END, 0, 1);
   rectK(314, 6, 160, 42, '#0e0a1e'); rectK(314, 6, 160, 1, '#3b3570'); rectK(314, 47, 160, 1, '#3b3570');
@@ -1935,16 +1974,59 @@ function updateDialog() {
 let titleCam = 0;
 const PAUSE_R = { x: 6, y: 40, w: 26, h: 20 };
 const BACK_R = { x: 10, y: 10, w: 74, h: 24 };
+const FS_R = { x: 36, y: 40, w: 26, h: 20 };
+let OGM = false, autoFsTried = false;
+const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
+const fsAPI = () => { const d = document.documentElement; return d.requestFullscreen || d.webkitRequestFullscreen; };
+const fsActive = () => !!fsEl() || isStandalone;
+const showFs = () => isTouch && !fsActive();
+function goFS() {
+  const f = fsAPI();
+  if (f && !isInApp) {
+    try { const p = f.call(document.documentElement, { navigationUI: 'hide' }); const lock = () => { try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {}); } catch (_) {} }; if (p && p.then) p.then(lock).catch(() => openFsHelp()); else lock(); } catch (_) { openFsHelp(); }
+    return true;
+  }
+  openFsHelp(); return false;
+}
+function openFsHelp() {
+  if (state === 'play') { pauseFrom = 'play'; state = 'pause'; }
+  if (state === 'title' || state === 'pause') menu = { kind: 'fshelp', sel: 0, prev: state === 'pause' ? 'pause' : 'title' };
+}
+function tapGesture(t) {
+  const hit = r => t.x >= r.x - 4 && t.x <= r.x + r.w + 4 && t.y >= r.y - 4 && t.y <= r.y + r.h + 4;
+  if (state === 'play' && showFs() && hit(FS_R)) { pressed.tap = false; goFS(); return; }
+  if (state === 'title' || state === 'pause') {
+    const items = menuItems(), i = menuRects.findIndex(r => hit({ x: r.x, y: r.y + 2, w: r.w, h: r.h - 4 }));
+    if (i >= 0 && items[i] && items[i][0] === 'fs') { pressed.tap = false; goFS(); return; }
+    if (state === 'title' && menu.kind === 'title' && !autoFsTried && isTouch && !fsActive() && fsAPI() && !isInApp) { autoFsTried = true; goFS(); }
+  }
+}
+function drawFsBtn(r) {
+  rectK(r.x, r.y, r.w, r.h, '#0e0a1e'); rectK(r.x, r.y, r.w, 1, '#3b3570'); rectK(r.x, r.y + r.h - 1, r.w, 1, '#3b3570');
+  const c = '#f4efe4', x0 = r.x + 6, y0 = r.y + 4, x1 = r.x + r.w - 6, y1 = r.y + r.h - 4;
+  rectK(x0, y0, 5, 2, c); rectK(x0, y0, 2, 5, c); rectK(x1 - 5, y0, 5, 2, c); rectK(x1 - 2, y0, 2, 5, c);
+  rectK(x0, y1 - 2, 5, 2, c); rectK(x0, y1 - 5, 2, 5, c); rectK(x1 - 5, y1 - 2, 5, 2, c); rectK(x1 - 2, y1 - 5, 2, 5, c);
+}
+function drawFsHelp() {
+  rectK(50, 128, 380, 104, 'rgba(10,8,26,0.94)'); rectK(50, 128, 380, 2, '#f5c92e');
+  txt('전체화면으로 플레이하기', W / 2, 146, 13, '#fff3a0', 'center');
+  const rows = isInApp ? ['이 앱 안의 브라우저에서는 전체화면이 안 돼요.', '오른쪽 위/아래 ⋯ 메뉴 → "다른 브라우저로 열기" 를 눌러', 'Safari 나 Chrome 으로 열어 주세요.', '그다음 홈 화면에 추가하면 앱처럼 꽉 찬 화면이 돼요.']
+    : isIOS ? ['아이폰 Safari 는 웹페이지 전체화면을 지원하지 않아요.', 'Safari 공유 버튼(□↑) → "홈 화면에 추가" 를 누르고', '홈 화면에 생긴 아이콘으로 실행하면', '주소창 없이 꽉 찬 화면으로 플레이할 수 있어요.']
+    : ['브라우저가 전체화면을 막고 있어요.', '브라우저 메뉴 → "홈 화면에 추가" 후 아이콘으로 실행하면', '주소창 없이 꽉 찬 화면으로 플레이할 수 있어요.', ''];
+  rows.forEach((s, i) => txt(s, W / 2, 166 + i * 15, 10, '#f4efe4', 'center', false));
+  drawMenu(menuItems(), W / 2, 238, 120);
+}
 function drawBack() {
   const r = BACK_R; rectK(r.x - 1, r.y - 1, r.w + 2, r.h + 2, '#140e1c'); rectK(r.x, r.y, r.w, r.h, '#d8403a'); rectK(r.x, r.y, r.w, 2, '#ff8a7a'); rectK(r.x, r.y + r.h - 2, r.w, 2, '#8e2228');
   txt('◀ 뒤로', r.x + r.w / 2, r.y + 16.5, 12, '#ffffff', 'center');
 }
 let menu = { kind: 'title', sel: 0 }, menuRects = [], pauseFrom = 'play';
 function menuItems() {
-  if (menu.kind === 'title') return progress > 1 ? [['cont', `이어하기 · ${progress}구간부터`], ['new', '처음부터 출근'], ['stages', '구간 선택'], ['help', '조작법']] : [['new', '출근하기'], ['help', '조작법']];
+  const fsI = showFs() ? [['fs', '⛶ 전체화면으로 보기']] : [];
+  if (menu.kind === 'title') return progress > 1 ? [['cont', `이어하기 · ${progress}구간부터`], ['new', '처음부터 출근'], ['stages', '구간 선택'], ['help', '조작법'], ...fsI] : [['new', '출근하기'], ['help', '조작법'], ...fsI];
   if (menu.kind === 'stages') return [...STAGES.slice(0, progress).map((s, i) => ['st' + i, `${s.n}구간 · ${s.from} → ${s.to}`]), ['back', '뒤로']];
-  if (menu.kind === 'help') return [['back', '◀ 뒤로']];
-  return [['resume', '계속하기'], ['retry', '이 구간 처음부터'], ['sound', A.muted ? '소리 켜기' : '소리 끄기'], ['main', '메인 메뉴로']];
+  if (menu.kind === 'help' || menu.kind === 'fshelp') return [['back', '◀ 뒤로']];
+  return [['resume', '계속하기'], ['retry', '이 구간 처음부터'], ['sound', A.muted ? '소리 켜기' : '소리 끄기'], ...fsI, ['main', '메인 메뉴로']];
 }
 function menuInput() {
   const items = menuItems();
@@ -1955,6 +2037,7 @@ function menuInput() {
   if (act) {} else if (pressed.tap && tapPos) { const i = menuRects.findIndex(r => tapPos.x >= r.x && tapPos.x <= r.x + r.w && tapPos.y >= r.y - 2 && tapPos.y <= r.y + r.h + 2); if (i >= 0 && items[i]) { menu.sel = i; act = items[i][0]; } }
   else if (pressed.start || pressed.atk) act = items[Math.min(menu.sel, items.length - 1)][0];
   if (!act && (pressed.pause || pressed.dodge) && menu.kind !== 'title') act = menu.kind === 'pause' ? 'resume' : 'back';
+  if (act === 'resume' && state !== 'pause') act = null;
   if (act) doMenu(act);
 }
 function doMenu(a) {
@@ -1963,7 +2046,8 @@ function doMenu(a) {
   else if (a === 'new') startStage(0, null);
   else if (a === 'stages') menu = { kind: 'stages', sel: 0 };
   else if (a === 'help') menu = { kind: 'help', sel: 0 };
-  else if (a === 'back') menu = { kind: 'title', sel: 0 };
+  else if (a === 'back') menu = { kind: menu.prev || 'title', sel: 0 };
+  else if (a === 'fs') { if (!fsEl()) openFsHelp(); }
   else if (a.startsWith('st')) startStage(+a.slice(2), null);
   else if (a === 'resume') state = pauseFrom;
   else if (a === 'retry') { const si = game.stage, tt = game.tot; newGame(si, tt); state = 'play'; bgm(STG.bgm); toast(`${STG.n}구간 처음부터! 목숨 3개`, 200); }
@@ -1995,6 +2079,7 @@ function drawTitle() {
   sprRot('salary0', 190, 226, true, (Math.PI / 2) * 1, false);
   spr('boss_idle', 380, 222, true); shadow(380, 222, 34);
   ctx.drawImage(buf, 0, 0, cvs.width, cvs.height);
+  if (OGM) return;
   rectK(0, 0, W, H, 'rgba(10,8,26,0.35)');
   signs.forEach(s => txt(s.t, s.x, s.y, s.size, s.color, s.align, s.stroke));
   rectK(70, 50, 340, 86, 'rgba(10,8,26,0.85)');
@@ -2005,8 +2090,9 @@ function drawTitle() {
   txt('소요산 → 인천 · 전 5구간', W / 2, 122, 9.5, '#ff8a7a', 'center', false);
   if (best) txt(`최고 폭주 평가 ${best}`, W - 10, 18, 9, '#d9d4f0', 'right');
   if (menu.kind === 'help') drawHelp();
+  else if (menu.kind === 'fshelp') drawFsHelp();
   else drawMenu(menuItems(), W / 2, 146, menu.kind === 'stages' ? 220 : 180);
-  if (menu.kind === 'help' || menu.kind === 'stages') drawBack();
+  if (menu.kind === 'help' || menu.kind === 'stages' || menu.kind === 'fshelp') drawBack();
   if (isTouch && window.innerHeight > window.innerWidth) txt('가로로 돌리면 더 크게 보여요', W / 2, 30, 9, '#9ad4ff', 'center');
   if (menu.kind === 'title') txt('21개월을 참았다. 오늘은 안 참는다.', W / 2, 262, 8.5, '#d9d4f0', 'center');
 }
@@ -2068,8 +2154,9 @@ function drawPause() {
   rectK(0, 0, W, H, 'rgba(10,8,26,0.75)');
   txt('일시정지', W / 2, 80, 24, '#f4efe4', 'center');
   txt(`${STG.n}구간 · ${STG.title} · ${STG.from} → ${STG.to}`, W / 2, 98, 10, '#9ad4ff', 'center', false);
+  if (menu.kind === 'fshelp') { drawFsHelp(); drawBack(); return; }
   drawMenu(menuItems(), W / 2, 116, 190);
-  txt(isTouch ? '항목을 눌러 선택' : '↑↓ 선택 · Enter 확인 · Esc 계속', W / 2, 222, 9, '#9c96c4', 'center', false);
+  txt(isTouch ? '항목을 눌러 선택' : '↑↓ 선택 · Enter 확인 · Esc 계속', W / 2, 116 + menuItems().length * 22 + 12, 9, '#9c96c4', 'center', false);
 }
 
 // ------------------------------------------------------------------ main loop
@@ -2149,6 +2236,9 @@ prerender();
 Promise.all([loadAll(), (document.fonts && document.fonts.load ? document.fonts.load('20px "Do Hyeon"').catch(() => {}) : Promise.resolve())])
   .then(() => { newGame(0); fit(); state = 'title'; cvs.focus(); });
 requestAnimationFrame(frame);
-window.__gongik = { get state() { return state; }, get game() { return game; }, get stg() { return STG; }, press, release, keys, joy, startStage, menuKind: () => menu.kind, set progress(v) { progress = v; } };
+window.__gongik = { get state() { return state; }, get game() { return game; }, get stg() { return STG; }, press, release, keys, joy, startStage, menuKind: () => menu.kind, set og(v) { OGM = v; }, set progress(v) { progress = v; } };
 })();
 </script>
+
+</body>
+</html>
