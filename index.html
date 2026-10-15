@@ -913,7 +913,8 @@ const TIPS = {
   dodge: () => `${KEYNAME.dodge}: 짧은 무적 구르기 · 공격 후딜도 끊을 수 있다`,
   rage: () => `때리고 맞을수록 폭주 게이지가 찬다 · 100이면 1단, 200이면 2단 ${KEYNAME.ult}!`,
   vend: () => '자판기도 때릴 수 있다 (민원 주의)',
-  guide: () => `초록 표시 승객은 때리지 말고 ${KEYNAME.guide} 안내 3번! 성공하면 목숨 +1`,
+  guide: () => `초록 표시 승객은 때리지 말고 ${KEYNAME.guide} 안내 3번! 성공하면 보상이 있다`,
+  armor: () => '보스는 버팀 게이지(노란 줄)가 있어 쉽게 안 넘어간다! 다 깎으면 그로기 · 그때 몰아치세요',
 };
 const freshTot = () => ({ kos: 0, guided: 0, dmg: 0, deaths: 0, maxCombo: 0, time: 0, ults: 0, vend: 0, scores: [] });
 function newGame(si = 0, tot = null) {
@@ -984,6 +985,7 @@ function doHits(p, A) {
   });
   const b = G.boss;
   if (b && G.phase === 'boss' && !b.hidden && !p.atk.hit.has(b) && !['intro', 'fly', 'down', 'rise', 'ko', 'kolie'].includes(b.st) && inHitBox(p, A, b.x, b.y, b.def.big ? 30 : 6, b.def.big ? 26 : 15)) { p.atk.hit.add(b); hitBoss(A.dmg, A.kb, A.launch); }
+  if (!p.atk) return;
   G.projs.forEach(o => { if (!o.dead && !['ring', 'beam', 'quake'].includes(o.k) && inHitBox(p, A, o.x, o.y, 4)) { o.dead = true; sparks(o.x, o.y - o.z, '#ffffff', 8); floatText(o.x, o.y - 50, '튕겨냄!', '#9ad4ff', 8); addRage(3); SFX.punch(); } });
   if (G.vend && !G.vend.broken && !p.atk.hit.has('vend') && p.y < 178 && Math.abs(p.x + p.face * 22 - G.vend.x) < 26) {
     p.atk.hit.add('vend'); G.vend.hp--; G.shake = 4; sparks(G.vend.x, 120, '#ffffff', 8); SFX.heavy(); G.hitstop = 3;
@@ -1142,23 +1144,51 @@ const BOSSDEF = {
     say: { quake: ['문 닫지 마!!', '쾅!!'], dash: ['일행 온다고!!'], spin: ['출입문 회전 수비!'], hurt: ['문이… 문이 닫힌다!', '으읏!'], p2: '일행 아직 안 왔다고오!!' },
     ko: '…일행은… 다음 열차 탄대…', tip: '지면 충격파는 회피로 넘기세요. 돌진 뒤 지친 틈이 기회!',
     intro: [B5('이 문 못 닫는다! 일행 오고 있어!'), H_('선생님 때문에 열차가 20분째 지연이에요.'), B5('5분만! 아니 10분만!!')] },
-  legion: { name: '러시아워 레기온', hp: 600, sp: 0.75, keep: 130, big: true, color: '#6a88e8', acts: ['push', 'bag', 'quake'], acts2: ['push', 'summon', 'bag', 'quake', 'push'], summon: ['salary', 'bully', 'hiker'],
-    say: { push: ['밀어!! 밀어!!', '타야 돼!! 타야 돼!!'], bag: ['가방 날아간다~!'], quake: ['쿵!! 쿵!!'], summon: ['퇴근 인파 증원!'], hurt: ['으아아…', '아직 환승 남았어…'], p2: '신도림 환승객 합류!!' },
+  legion: { name: '러시아워 레기온', hp: 600, sp: 0.75, keep: 130, big: true, color: '#6a88e8', acts: ['push', 'toss', 'bag', 'toss', 'quake'], acts2: ['push', 'toss', 'summon', 'toss', 'quake', 'bag', 'push'], summon: ['salary', 'bully', 'hiker'],
+    say: { toss: ['승객 투척!!', '너도 타!! 아니 내려!!', '환승객 발사!!'], push: ['밀어!! 밀어!!', '타야 돼!! 타야 돼!!'], bag: ['가방 날아간다~!'], quake: ['쿵!! 쿵!!'], summon: ['퇴근 인파 증원!'], hurt: ['으아아…', '아직 환승 남았어…'], p2: '신도림 환승객 합류!!' },
     ko: '…집에… 가고 싶다……', tip: '거대 인파 밀기는 회피 무적으로! 궁극기는 아껴 뒀다 쓰세요',
     intro: [B6('타…야…돼… 타야… 돼…'), H_('수십 명의 퇴근이 하나로 뭉쳤다…'), H_('…나도 퇴근하고 싶다고!!')] },
 };
 function startBoss() {
   const G = game, type = STG.bosses[G.bossIdx], def = BOSSDEF[type];
   G.phase = 'bossintro'; G.pending = [];
-  const hp = Math.round(def.hp * (1 + (STG.n - 1) * 0.05));
-  G.boss = { type, def, x: END - (def.big ? 110 : 96), y: 206, face: -1, hp, max: hp, st: 'intro', t: 0, flash: 0, z: 0, vz: 0, vx: 0, act: 0, say: null, phase2: false, poise: 0, queue: 0, hidden: false };
+  const hp = Math.round(def.hp * (1 + (STG.n - 1) * 0.15));
+  const arm = Math.round((50 + STG.n * 22) * (def.big ? 1.35 : 1));
+  G.boss = { type, def, x: END - (def.big ? 110 : 96), y: 206, face: -1, hp, max: hp, arm, armMax: arm, brk: 0, quiet: 0, mash: 0, mashT: 0, ctr: 0, st: 'intro', t: 0, flash: 0, z: 0, vz: 0, vx: 0, act: 0, say: null, phase2: false, poise: 0, queue: 0, hidden: false };
   if (G.bossIdx === 0) bgm(null);
   SFX.alarm(); G.banner = { t: 0, life: 150 };
 }
-function hitBoss(dmg, kb, launch) {
+function hitBoss(dmg, kb, launch, armD) {
   const G = game, b = G.boss, p = G.p, d = b.def;
   if (b.hidden) return;
   const dir = sign(b.x - p.x) || p.face;
+  b.quiet = 0;
+  if (b.brk <= 0 && b.st !== 'down' && b.st !== 'fly' && b.st !== 'rise') {
+    // armored: reduced damage, no flinch, gauge drains
+    const vul = b.st === 'tired' || b.st === 'stagger' ? 2 : ARMOR.includes(b.st) ? 0.5 : 1;
+    const ad = armD != null ? armD : dmg * (launch ? 1.6 : 1) * vul;
+    b.arm -= ad; dmg = Math.max(1, Math.round(dmg * 0.45)); b.hp -= dmg; b.flash = 6; comboUp(); addRage(3);
+    sparks(b.x - dir * 8, b.y - 36, '#f5c92e', launch ? 10 : 5);
+    floatText(b.x, b.y - (d.big ? 84 : 70), String(dmg), '#c9c4e8', 8);
+    if (b.hp <= 0) { bossKO(dir); return; }
+    if (b.arm <= 0) {
+      b.arm = 0; b.brk = 200 + STG.n * 10; b.mash = 0;
+      b.st = 'fly'; b.t = 0; b.vx = dir * (d.big ? 1.4 : 2.2); b.vz = 3.4; b.z = 1; b.ldir = dir; b.hidden = false; b.queue = 0;
+      G.hitstop = 9; G.shake = 9; G.flash = 4; SFX.boom(); SFX.heavy(); G.breakBanner = { t: 0 };
+      say(b, pick(d.say.hurt), 80); return;
+    }
+    G.hitstop = 1; SFX.punch();
+    if (Math.random() < 0.3) floatText(b.x + rnd2(-10, 10), b.y - (d.big ? 98 : 84), '버팀!', '#f5c92e', 7);
+    b.mash++; b.mashT = 0;
+    // punish mindless mashing: shove the hero away
+    if (b.mash >= 7 - Math.min(3, Math.floor(STG.n / 2)) && b.ctr <= 0 && !['dash', 'push', 'spin'].includes(b.st)) {
+      b.mash = 0; b.ctr = 90; say(b, '어딜 감히!!', 50); SFX.heavy(); G.shake = 6;
+      for (let i = 0; i < 14; i++) { const a = i / 14 * 6.283; G.fx.push({ type: 'p', x: b.x + Math.cos(a) * 14, y: b.y - 30 + Math.sin(a) * 8, vx: Math.cos(a) * 3, vy: Math.sin(a) * 1.4, life: 14, color: '#ffffff', s: 2 }); }
+      if (Math.abs(p.x - b.x) < 70 && Math.abs(p.y - b.y) < 24) { if (hurt(6 + STG.n * 2, b.x)) p.kx = -sign(b.x - p.x) * 6; }
+    }
+    return;
+  }
+  dmg = Math.round(dmg * 1.25);
   b.hp -= dmg; b.flash = 8; comboUp(); addRage(4);
   sparks(b.x - dir * 8, b.y - 36, launch ? '#fff3a0' : '#ffffff', launch ? 12 : 6);
   floatText(b.x, b.y - (d.big ? 84 : 70), String(dmg), launch ? '#f5c92e' : '#ffffff', launch ? 10 : 8);
@@ -1168,7 +1198,7 @@ function hitBoss(dmg, kb, launch) {
     spawn(d.summon[1] || d.summon[0], G.camX + W + 20, Math.round(rnd2(Y0 + 10, Y1 - 10)));
   }
   if (b.hp <= 0) { bossKO(dir); return; }
-  if (ARMOR.includes(b.st) && !launch) { b.poise += dmg * 0.4; floatText(b.x, b.y - (d.big ? 96 : 82), '버팀!', '#c9c4e8', 7); SFX.punch(); G.hitstop = 1; return; }
+  if (false && ARMOR.includes(b.st) && !launch) { b.poise += dmg * 0.4; floatText(b.x, b.y - (d.big ? 96 : 82), '버팀!', '#c9c4e8', 7); SFX.punch(); G.hitstop = 1; return; }
   b.poise += dmg;
   if (launch || b.poise >= (d.big ? 64 : 42)) {
     b.st = 'fly'; b.t = 0; b.vx = dir * (d.big ? 1.2 : 2.0); b.vz = d.big ? 2.2 : 3.0; b.z = 1; b.poise = 0; b.ldir = dir; b.hidden = false;
@@ -1198,6 +1228,14 @@ function doAct(b) {
   b.st = 'recover'; b.t = 0;
   if (act === 'throw') throwItem(b, pick(b.def.proj));
   else if (act === 'bag') throwItem(b, 'bag');
+  else if (act === 'toss') {
+    const n = b.phase2 ? 2 : 1; SFX.throw(); SFX.yell(0.5);
+    for (let i = 0; i < n; i++) {
+      const tx = clamp(p.x + (i ? rnd2(-40, 40) : 0), ARENA_L + 20, END - 20), ty = clamp(p.y + (i ? rnd2(-16, 16) : 0), Y0 + 4, Y1), T = 52 + i * 10, x0 = b.x + b.face * 10, y0 = b.y;
+      G.projs.push({ k: 'pax', who: pick(['salary0', 'hiker0', 'bully0']), x: x0, y: y0, vx: (tx - x0) / T, vy: (ty - y0) / T, t: 0, T, z: 70, rot: 0, dmg: 14 });
+    }
+    puff(b.x, b.y - 60, 8);
+  }
   else if (act === 'throw3') { SFX.throw(); [-16, 0, 16].forEach((o, i) => G.projs.push({ k: 'flyer', x: b.x + b.face * 20, y: clamp(b.y + o, Y0, Y1), vx: b.face * (3.8 + i * 0.2), vy: clamp((p.y - b.y) / 70, -0.6, 0.6), dmg: 7, z: 32, rot: 0 })); }
   else if (act === 'shout' || act === 'ring' || act === 'ring3') { SFX.yell(0.8); G.projs.push({ k: 'ring', x: b.x, y: b.y, r: 10, vr: 3.4, max: 270, dmg: 8, z: 0 }); G.shake = 3; }
   else if (act === 'beam') { SFX.yell(1); G.projs.push({ k: 'beam', x: b.x + b.face * 26, y: b.y, vx: b.face * 5.2, vy: 0, dmg: 12, z: 30 }); }
@@ -1216,8 +1254,14 @@ function updateBoss() {
   const G = game, b = G.boss, p = G.p, d = b.def;
   b.t++; if (b.flash > 0) b.flash--;
   if (b.say && --b.say.life <= 0) b.say = null;
+  if (b.ctr > 0) b.ctr--;
+  if (++b.mashT > 50) b.mash = 0;
+  if (G.phase === 'boss' && !b.koing) {
+    if (b.brk > 0) { if (b.st !== 'fly' && b.st !== 'down') { b.brk--; if (b.brk === 0) { b.arm = b.armMax; say(b, '이제 안 넘어간다!!', 60); SFX.charge(); } } }
+    else if (++b.quiet > 90 && b.arm < b.armMax) b.arm = Math.min(b.armMax, b.arm + b.armMax * 0.003);
+  }
   if (G.phase === 'bossintro') {
-    if (b.t === 160) dialog(d.intro, () => { G.phase = 'boss'; b.st = 'idle'; b.t = 0; bgm(STG.bossBgm); toast(d.tip, 300); });
+    if (b.t === 160) dialog(d.intro, () => { G.phase = 'boss'; b.st = 'idle'; b.t = 0; bgm(STG.bossBgm); if (!TIPS_SHOWN.armor) tip('armor'); else toast(d.tip, 300); });
     return;
   }
   if (b.st === 'fly') {
@@ -1233,7 +1277,8 @@ function updateBoss() {
     }
     return;
   }
-  if (b.st === 'down') { if (b.t > 50) { b.st = 'rise'; b.t = 0; } return; }
+  if (b.st === 'down') { if (b.t > (b.brk > 0 ? 70 : 50)) { b.st = 'rise'; b.t = 0; } return; }
+  if (b.brk > 0 && b.st === 'idle') { b.t = Math.min(b.t, 20); if (tick % 8 === 0) G.fx.push({ type: 'p', x: b.x + rnd2(-10, 10), y: b.y - (d.big ? 80 : 64), vx: rnd2(-0.5, 0.5), vy: -0.4, life: 18, color: '#fff3a0', s: 2 }); }
   if (b.st === 'rise') { if (b.t > 16) { b.st = 'idle'; b.t = 0; } return; }
   if (b.st === 'hurt') { b.x += b.vx; b.vx *= 0.8; if (b.t > 12) { b.st = 'idle'; b.t = 20; } return; }
   const fast = b.phase2, sp = d.sp * (fast ? 1.3 : 1);
@@ -1242,7 +1287,7 @@ function updateBoss() {
     case 'idle': {
       const want = clamp(p.x - b.face * d.keep, ARENA_L + 40, END - 50);
       b.x += clamp(want - b.x, -sp, sp); b.y += clamp(p.y - b.y, -sp * 0.6, sp * 0.6);
-      if (b.t > (fast ? 48 : 70)) { const list = fast ? d.acts2 : d.acts; startAct(b, list[b.act++ % list.length]); }
+      if (b.t > (fast ? 48 : 70) - (STG.n - 1) * 5) { const list = fast ? d.acts2 : d.acts; startAct(b, list[b.act++ % list.length]); }
       break;
     }
     case 'wind': if (b.t >= b.windT) doAct(b); break;
@@ -1294,6 +1339,16 @@ function updateProjs() {
       if (!o.hitP && Math.abs(dd - o.r) < 7) { o.hitP = true; hurt(o.dmg, o.x); }
       return;
     }
+    if (o.k === 'pax') {
+      o.t++; o.x += o.vx; o.y += o.vy; o.rot += 0.3;
+      o.z = 70 * (1 - o.t / o.T) + 60 * Math.sin(Math.PI * o.t / o.T);
+      if (o.t >= o.T) {
+        o.dead = true; G.shake = 7; SFX.heavy(); puff(o.x, o.y, 14);
+        if (Math.abs(o.x - p.x) < 30 && Math.abs(o.y - p.y) < 15) hurt(o.dmg, o.x);
+        if (G.ents.filter(e => !e.dead && !e.koing).length < 4) { const e = spawn(o.who.replace(/\d$/, ''), o.x, o.y); if (e) { e.st = 'down'; e.t = 0; } }
+      }
+      return;
+    }
     o.x += o.vx; o.y += o.vy; o.rot += 0.35;
     if (o.k === 'quake') { if (!o.hitP && Math.abs(o.x - p.x) < 11 && Math.abs(o.y - p.y) < 16) { o.hitP = true; hurt(o.dmg, o.x - o.vx * 4); } }
     else if (o.k === 'beam') { if (!o.hitP && Math.abs(o.x - p.x) < 20 && Math.abs(o.y - p.y) < 13) { o.hitP = true; hurt(o.dmg, o.x - o.vx * 4); } }
@@ -1324,8 +1379,8 @@ function doGuide() {
   for (let i = 0; i < 8; i++) G.fx.push({ type: 'p', x: p.x + p.face * 26, y: p.y - 34, vx: p.face * rnd2(0.8, 2.4), vy: rnd2(-0.8, 0.4), life: 18, color: '#8fe39a', s: 2 });
   floatText(h.x, h.y - 70, `안내 ${h.prog}/3`, '#8fe39a', 9);
   if (h.prog >= 3) {
-    h.st = 'happy'; h.t = 0; say(h, H.thanks, 100); G.guided++; G.lives = Math.min(9, G.lives + 1);
-    SFX.oneup(); floatText(h.x, h.y - 86, '1UP!', '#fff3a0', 15);
+    h.st = 'happy'; h.t = 0; say(h, H.thanks, 100); G.guided++;
+    SFX.oneup(); floatText(h.x, h.y - 100, '안내 성공!', '#fff3a0', 13);
     for (let i = 0; i < 12; i++) G.fx.push({ type: 'heart', x: h.x + rnd2(-16, 16), y: h.y - rnd2(26, 62), vy: -rnd2(0.3, 0.9), life: Math.round(rnd2(30, 55)) });
     if (H.bonus === 'hp') { p.hp = Math.min(100, p.hp + 40); floatText(p.x, p.y - 86, 'HP +40', '#8fe39a', 9); }
     if (H.bonus === 'rage') { addRage(50); floatText(p.x, p.y - 86, '폭주 +50', '#ffb070', 9); }
@@ -1380,7 +1435,7 @@ function updateUlt() {
     });
     const b = G.boss;
     if (b && G.phase === 'boss' && !b.hidden && !R.hit.has(b) && !['kolie', 'intro', 'fly'].includes(b.st) && Math.hypot(b.x - p.x, (b.y - p.y) * 2.2) <= R.r) {
-      R.hit.add(b); hitBoss(Math.max(1, Math.round(b.max * R.boss)), 0, R.launch);
+      R.hit.add(b); hitBoss(Math.max(1, Math.round(b.max * R.boss)), 0, R.launch, b.armMax * (u.tier === 1 ? 0.45 : 0.4));
     }
     G.projs.forEach(o => { if (!o.dead && Math.hypot(o.x - p.x, (o.y - p.y) * 2.2) <= R.r) { o.dead = true; sparks(o.x, o.y - (o.z || 0), '#fff3a0', 6); } });
   });
@@ -1747,6 +1802,12 @@ function drawWorld() {
   G.projs.forEach(o => { if (o.k === 'ring') return; list.push({ y: o.y, d: () => {
     if (o.k === 'beam') { g.fillStyle = (tick >> 1) % 2 ? '#9ad4ff' : '#ffffff'; for (let i = 0; i < 4; i++) for (let a = -0.9; a <= 0.9; a += 0.15) g.fillRect(Math.round(o.x - cx - sign(o.vx) * i * 7 + sign(o.vx) * Math.cos(a) * 10), Math.round(o.y - 30 + Math.sin(a) * (8 + i * 3)), 2, 2); return; }
     if (o.k === 'quake') { g.fillStyle = '#5a5464'; for (let i = 0; i < 3; i++) { const hh = 6 + ((tick + i * 3) % 6); g.fillRect(Math.round(o.x - cx - i * 6 * sign(o.vx)), Math.round(o.y - hh), 5, hh); } g.fillStyle = '#c8c0b0'; g.fillRect(Math.round(o.x - cx) - 2, Math.round(o.y - 10), 3, 3); return; }
+    if (o.k === 'pax') {
+      const s = IM[o.who]; if (!s) return;
+      g.save(); g.translate(Math.round(o.x - cx), Math.round(o.y - o.z - 30)); g.rotate(Math.round(o.rot / (Math.PI / 4)) * (Math.PI / 4)); g.drawImage(o.vx < 0 ? s.f : s.im, -Math.round(s.w / 2), -Math.round(s.h / 2)); g.restore();
+      const k = 1 - o.t / o.T; if (k < 0.5 && (tick >> 2) % 2) { g.fillStyle = 'rgba(255,60,60,0.6)'; g.fillRect(Math.round(o.x + o.vx * (o.T - o.t) - cx) - 14, Math.round(o.y + o.vy * (o.T - o.t)) - 3, 28, 6); }
+      return;
+    }
     const im = IM[o.k]; if (!im) return;
     g.save(); g.translate(Math.round(o.x - cx), Math.round(o.y - o.z));
     if (o.k !== 'blanket') g.rotate(Math.round(o.rot / (Math.PI / 2)) * (Math.PI / 2));
@@ -1863,11 +1924,15 @@ function drawHUD() {
   // boss bar top center
   const b = G.boss;
   if (b && G.phase === 'boss') {
-    rectK(166, 6, 144, 32, '#0e0a1e'); rectK(166, 6, 144, 1, '#e86aa0');
-    txt(b.def.name, 172, 19, 9, '#ffc0d8');
-    if (b.phase2) txt('분노', 304, 19, 8.5, (tick >> 3) % 2 ? '#ff6a5a' : '#ffc0d8', 'right');
-    bar(172, 25, 132, 7, Math.max(0, b.hp) / b.max, '#e8406a', '#3a1020');
+    rectK(100, 6, 208, 40, '#0e0a1e'); rectK(100, 6, 208, 1, '#e86aa0');
+    txt(b.def.name, 106, 19, 9, '#ffc0d8');
+    txt(`LV.${STG.n}`, 302, 19, 8, '#f5c92e', 'right');
+    if (b.phase2) txt('분노', 276, 19, 8.5, (tick >> 3) % 2 ? '#ff6a5a' : '#ffc0d8', 'right');
+    bar(106, 24, 196, 7, Math.max(0, b.hp) / b.max, '#e8406a', '#3a1020');
+    if (b.brk > 0) { bar(136, 35, 166, 4, b.brk / (200 + STG.n * 10), '#ffffff', '#2a2440'); txt('그로기', 106, 40.5, 7.5, (tick >> 2) % 2 ? '#fff3a0' : '#ff8a3a', 'left'); }
+    else { bar(136, 35, 166, 4, b.arm / b.armMax, '#f5c92e', '#3a3010'); txt('버팀', 106, 40.5, 7.5, '#f5c92e', 'left'); }
   }
+  if (G.breakBanner) { const bb = G.breakBanner; bb.t++; if (bb.t > 70) G.breakBanner = null; else { const s = bb.t < 6 ? 1.6 - bb.t * 0.1 : 1; txt('가드 브레이크!!', W / 2, 92, 20 * s, (tick >> 2) % 2 ? '#fff3a0' : '#ff8a3a', 'center'); if (bb.t < 50) txt('지금이야, 몰아쳐!', W / 2, 108, 10, '#ffffff', 'center'); } }
   // combo
   if (G.combo >= 2) {
     const s = 1 + Math.max(0, (G.comboT - 80) / 10) * 0.3;
@@ -2023,13 +2088,24 @@ function drawBack() {
 let menu = { kind: 'title', sel: 0 }, menuRects = [], pauseFrom = 'play';
 function menuItems() {
   const fsI = showFs() ? [['fs', '⛶ 전체화면으로 보기']] : [];
-  if (menu.kind === 'title') return progress > 1 ? [['cont', `이어하기 · ${progress}구간부터`], ['new', '처음부터 출근'], ['stages', '구간 선택'], ['help', '조작법'], ...fsI] : [['new', '출근하기'], ['help', '조작법'], ...fsI];
-  if (menu.kind === 'stages') return [...STAGES.slice(0, progress).map((s, i) => ['st' + i, `${s.n}구간 · ${s.from} → ${s.to}`]), ['back', '뒤로']];
+  if (menu.kind === 'title') return progress > 1 ? [['cont', `이어하기 · ${progress}구간부터`], ['new', '처음부터 출근'], ['stages', '구간 선택'], ['help', '조작법'], ...fsI] : [['new', '출근하기'], ['stages', '구간 선택 (노선도)'], ['help', '조작법'], ...fsI];
+  if (menu.kind === 'stages') return [...STAGES.map((s, i) => ['st' + i, s.from]), ['go', '출발'], ['back', '◀ 뒤로']];
   if (menu.kind === 'help' || menu.kind === 'fshelp') return [['back', '◀ 뒤로']];
   return [['resume', '계속하기'], ['retry', '이 구간 처음부터'], ['sound', A.muted ? '소리 켜기' : '소리 끄기'], ...fsI, ['main', '메인 메뉴로']];
 }
 function menuInput() {
   const items = menuItems();
+  if (menu.kind === 'stages') {
+    if (pressed.left || pressed.up) { menu.st = Math.max(0, menu.st - 1); SFX.sel(); }
+    if (pressed.right || pressed.down) { menu.st = Math.min(STAGES.length - 1, menu.st + 1); SFX.sel(); }
+    let act = null;
+    if (tapIn(BACK_R)) act = 'back';
+    else if (pressed.tap && tapPos) { const i = menuRects.findIndex(r => tapPos.x >= r.x && tapPos.x <= r.x + r.w && tapPos.y >= r.y && tapPos.y <= r.y + r.h); if (i >= 0 && items[i]) act = items[i][0]; }
+    else if (pressed.start || pressed.atk) act = 'go';
+    else if (pressed.pause || pressed.dodge) act = 'back';
+    if (act) doMenu(act);
+    return;
+  }
   if (pressed.up) { menu.sel = (menu.sel + items.length - 1) % items.length; SFX.sel(); }
   if (pressed.down) { menu.sel = (menu.sel + 1) % items.length; SFX.sel(); }
   let act = null;
@@ -2044,11 +2120,12 @@ function doMenu(a) {
   SFX.sel();
   if (a === 'cont') startStage(progress - 1, null);
   else if (a === 'new') startStage(0, null);
-  else if (a === 'stages') menu = { kind: 'stages', sel: 0 };
+  else if (a === 'stages') menu = { kind: 'stages', sel: 0, st: Math.min(progress, STAGES.length) - 1, msg: 0 };
+  else if (a === 'go') { if (menu.st < progress) startStage(menu.st, null); else { menu.msg = 100; SFX.hit(); } }
   else if (a === 'help') menu = { kind: 'help', sel: 0 };
   else if (a === 'back') menu = { kind: menu.prev || 'title', sel: 0 };
   else if (a === 'fs') { if (!fsEl()) openFsHelp(); }
-  else if (a.startsWith('st')) startStage(+a.slice(2), null);
+  else if (a.startsWith('st')) { const i = +a.slice(2); if (menu.st === i && i < progress) startStage(i, null); else { menu.st = i; menu.msg = i < progress ? 0 : 100; } }
   else if (a === 'resume') state = pauseFrom;
   else if (a === 'retry') { const si = game.stage, tt = game.tot; newGame(si, tt); state = 'play'; bgm(STG.bgm); toast(`${STG.n}구간 처음부터! 목숨 3개`, 200); }
   else if (a === 'sound') A.muted = !A.muted;
@@ -2082,6 +2159,7 @@ function drawTitle() {
   if (OGM) return;
   rectK(0, 0, W, H, 'rgba(10,8,26,0.35)');
   signs.forEach(s => txt(s.t, s.x, s.y, s.size, s.color, s.align, s.stroke));
+  if (menu.kind === 'stages') { drawStageMap(); drawBack(); return; }
   rectK(70, 50, 340, 86, 'rgba(10,8,26,0.85)');
   rectK(70, 50, 340, 3, '#d8403a'); rectK(70, 133, 340, 3, '#d8403a');
   txt('LINE 1 · 소집해제 D-1', W / 2, 68, 8, '#f5c92e', 'center', false);
@@ -2096,9 +2174,49 @@ function drawTitle() {
   if (isTouch && window.innerHeight > window.innerWidth) txt('가로로 돌리면 더 크게 보여요', W / 2, 30, 9, '#9ad4ff', 'center');
   if (menu.kind === 'title') txt('21개월을 참았다. 오늘은 안 참는다.', W / 2, 262, 8.5, '#d9d4f0', 'center');
 }
+const LINE1 = '#1f5fd1';
+function dot(x, y, r, fill, ring, rw) { ctx.beginPath(); ctx.arc(x * K, y * K, r * K, 0, 6.283); ctx.fillStyle = ring; ctx.fill(); ctx.beginPath(); ctx.arc(x * K, y * K, (r - rw) * K, 0, 6.283); ctx.fillStyle = fill; ctx.fill(); }
+function drawLock(x, y, c) { rectK(x - 4, y - 1, 8, 6, c); rectK(x - 3, y - 5, 1.5, 4, c); rectK(x + 1.5, y - 5, 1.5, 4, c); rectK(x - 3, y - 6, 6, 1.5, c); }
+function drawStageMap() {
+  if (menu.msg > 0) menu.msg--;
+  rectK(16, 40, 448, 222, 'rgba(10,8,26,0.92)'); rectK(16, 40, 448, 3, LINE1);
+  rectK(28, 52, 26, 18, LINE1); txt('1', 41, 66, 14, '#ffffff', 'center', false);
+  txt('1호선 노선도 · 구간 선택', 62, 66, 13, '#f4efe4', 'left');
+  txt(`클리어 ${Math.max(0, progress - 1)} / ${STAGES.length}`, 452, 66, 9, '#9ad4ff', 'right', false);
+  const xs = [48, 124, 200, 276, 352, 432], y = 112, names = [...STAGES.map(s => s.from), '인천'];
+  // track
+  for (let i = 0; i < 5; i++) { const open = i < progress - 1 || (i === progress - 1 && false); rectK(xs[i], y - 3, xs[i + 1] - xs[i], 6, i < progress - 1 ? LINE1 : i === progress - 1 ? '#3a4a7a' : '#3a3650'); if (i >= progress - 1) for (let k = xs[i] + 4; k < xs[i + 1] - 4; k += 10) rectK(k, y - 0.5, 5, 1, '#5a5674'); }
+  menuRects = [];
+  names.forEach((nm, i) => {
+    const x = xs[i], unlocked = i < progress, cleared = i < progress - 1, sel = i === menu.st, end = i === 5;
+    if (sel) { const r = 12 + ((tick >> 3) % 2); dot(x, y, r, 'rgba(0,0,0,0)', '#f5c92e', 2); }
+    if (end) dot(x, y, 9, progress > 5 ? '#ffffff' : '#2a2640', progress > 5 ? '#ff8a3a' : '#5a5674', 3);
+    else dot(x, y, 8, unlocked ? '#ffffff' : '#2a2640', unlocked ? LINE1 : '#5a5674', 3);
+    if (!unlocked && !end) drawLock(x, y + 1, '#9c96c4');
+    if (cleared) txt('CLEAR', x, y - 22, 7, '#8fe39a', 'center', false);
+    else if (!end) txt(`${i + 1}구간`, x, y - 22, 8, unlocked ? '#f5c92e' : '#6c6890', 'center', false);
+    else txt('종점', x, y - 22, 8, '#ff8a7a', 'center', false);
+    txt(nm, x, y + 26, 11, sel ? '#fff3a0' : unlocked || end ? '#f4efe4' : '#7a7698', 'center', false);
+    if (!end) menuRects.push({ x: x - 34, y: y - 34, w: 68, h: 70 });
+  });
+  // info card
+  const s = STAGES[menu.st], unlocked = menu.st < progress;
+  rectK(36, 156, 408, 64, unlocked ? 'rgba(31,95,209,0.22)' : 'rgba(60,56,80,0.4)'); rectK(36, 156, 4, 64, unlocked ? '#f5c92e' : '#5a5674');
+  txt(`${s.n}구간 · ${s.title}`, 50, 174, 13, unlocked ? '#fff3a0' : '#9c96c4', 'left');
+  txt(`${s.from} → ${s.to}`, 50, 191, 10, '#d9d4f0', 'left', false);
+  txt(`보스: ${s.bosses.map(k => BOSSDEF[k].name).join(' · ')}  ·  LV.${s.n}`, 50, 208, 9.5, unlocked ? '#ff9ab8' : '#7a7698', 'left', false);
+  const gx = 334, gy = 172, gw = 100, gh = 30;
+  if (unlocked) { rectK(gx - 1, gy - 1, gw + 2, gh + 2, '#140e1c'); rectK(gx, gy, gw, gh, '#d8403a'); rectK(gx, gy, gw, 2, '#ff8a7a'); rectK(gx, gy + gh - 2, gw, 2, '#8e2228'); txt('출발 ▶', gx + gw / 2, gy + 20, 13, '#ffffff', 'center'); }
+  else { rectK(gx, gy, gw, gh, '#2a2640'); drawLock(gx + 18, gy + 15, '#9c96c4'); txt('잠김', gx + 60, gy + 20, 12, '#9c96c4', 'center', false); }
+  menuRects.push({ x: gx, y: gy, w: gw, h: gh });
+  menuRects.push({ x: BACK_R.x, y: BACK_R.y, w: BACK_R.w, h: BACK_R.h });
+  const lockMsg = `${menu.st}구간을 클리어하면 열려요`;
+  if (!unlocked) txt(menu.msg > 0 && (tick >> 2) % 2 ? lockMsg : lockMsg, W / 2, 240, 10, menu.msg > 0 ? '#ff8a7a' : '#9c96c4', 'center', false);
+  else txt(isTouch ? '역을 눌러 고르고 · 출발을 누르세요' : '←→ 역 선택 · Enter 출발 · X 뒤로', W / 2, 240, 9.5, '#9c96c4', 'center', false);
+}
 function drawHelp() {
   rectK(60, 136, 360, 96, 'rgba(10,8,26,0.92)'); rectK(60, 136, 360, 2, '#2b3f9c');
-  const rows = isTouch ? [['이동', '왼쪽 화면 아무 곳 · 조이스틱 (많이 밀수록 빠름)'], ['공격', '연타하면 3단 콤보 · 마지막 타격은 날려버림'], ['회피', '짧은 무적 구르기 · 공격 후딜 취소'], ['궁극기', '게이지 100: 대회전(주변) · 200: 난무(화면 전체)'], ['안내', '초록 표시 승객 옆에서 3번 · 성공 시 목숨 +1'], ['일시정지', '왼쪽 위 Ⅱ 버튼']]
+  const rows = isTouch ? [['이동', '왼쪽 화면 아무 곳 · 조이스틱 (많이 밀수록 빠름)'], ['공격', '연타하면 3단 콤보 · 마지막 타격은 날려버림'], ['회피', '짧은 무적 구르기 · 공격 후딜 취소'], ['궁극기', '게이지 100: 대회전(주변) · 200: 난무(화면 전체)'], ['안내', '초록 표시 승객 옆에서 3번 · 성공 시 체력·폭주 보상'], ['일시정지', '왼쪽 위 Ⅱ 버튼']]
     : [['이동', '←→↑↓ 또는 WASD'], ['공격', 'Z / J / Space · 연타 3단 콤보'], ['회피', 'X / K · 짧은 무적 구르기'], ['궁극기', 'C / L · 게이지 100 대회전, 200 난무'], ['안내', 'V / U · 초록 표시 승객 옆에서 3번'], ['일시정지', 'Esc / P · 소리 M']];
   rows.forEach(([a, b], i) => { txt(a, 74, 152 + i * 14, 10, '#f5c92e', 'left', false); txt(b, 130, 152 + i * 14, 9.5, '#f4efe4', 'left', false); });
   drawMenu(menuItems(), W / 2, 238, 120);
@@ -2109,7 +2227,7 @@ function drawOver() {
   txt('목숨을 모두 잃었다. 바나나우유가 간절하다.', W / 2, 124, 9, '#d9d4f0', 'center', false);
   if ((tick >> 5) % 2) txt(isTouch ? `화면을 눌러 ${STG.n}구간 처음부터` : `ENTER: ${STG.n}구간 처음부터`, W / 2, 158, 11, '#fff3a0', 'center');
   txt(isTouch ? '회피 버튼: 메인 메뉴로' : 'X: 메인 메뉴로', W / 2, 176, 9, '#d9d4f0', 'center', false);
-  txt('목숨은 3개로 다시 시작 · 교통약자를 안내하면 늘어납니다', W / 2, 192, 8, '#9c96c4', 'center', false);
+  txt('목숨은 구간마다 3개 · 더 늘지 않으니 아껴 쓰세요', W / 2, 192, 8, '#9c96c4', 'center', false);
 }
 function drawLifeLost() {
   const G = game, k = Math.min(1, G.lifeT / 12);
