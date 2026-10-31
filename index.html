@@ -89,6 +89,12 @@ body.touch.portrait #rot{display:flex}
 .rb.dodge{width:54px;height:54px;right:82px;bottom:13px}
 .rb.ult{width:54px;height:54px;right:76px;bottom:86px}
 .rb.guide{width:54px;height:54px;right:10px;bottom:114px}
+.rb.item{width:48px;height:48px;right:146px;bottom:58px;display:none}
+body.hasitem .rb.item,body.helpmode .rb.item{display:flex}
+.rb.item::before{content:attr(data-n);position:absolute;right:-4px;top:-4px;min-width:16px;height:16px;line-height:16px;font-size:12px;color:#140e1c;background:#fff3a0;border:2px solid #140e1c;text-align:center}
+.rb.hint{animation:hint .5s steps(2) infinite!important}
+#stick.hint{animation:hint .5s steps(2) infinite;opacity:1}
+@keyframes hint{50%{filter:brightness(1.5) drop-shadow(0 0 6px #fff3a0) drop-shadow(0 0 2px #fff3a0)}}
 .rb.ult.ready{background-image:var(--img-ready);animation:blink .5s steps(2) infinite}
 .rb.ult.ready.on{background-image:var(--img-on)}
 .rb.ult.ready2{background-image:var(--img-ready2);animation:blink .3s steps(2) infinite}
@@ -108,7 +114,8 @@ body.danger #game{animation:danger .45s steps(2) infinite}
   <div id="keys" aria-label="조작법">
     <span><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> 이동</span>
     <span><kbd>Z</kbd> 공격 (연타 3단 콤보)</span>
-    <span><kbd>X</kbd> 회피</span>
+    <span><kbd>X</kbd> 어깨빵 (MP 10 · 무적 대시)</span>
+    <span><kbd>F</kbd> 아이템 (호루라기)</span>
     <span><kbd>C</kbd> 궁극기 (게이지 100: 1단 · 200: 2단)</span>
     <span><kbd>V</kbd> 안내 (도움이 필요한 승객)</span>
     <span><kbd>Enter</kbd> 확인</span>
@@ -129,7 +136,8 @@ body.danger #game{animation:danger .45s steps(2) infinite}
 <div id="btns">
   <button class="rb guide" data-k="guide" aria-label="안내">안내</button>
   <button class="rb ult" data-k="ult" aria-label="궁극기">궁극기</button>
-  <button class="rb dodge" data-k="dodge" aria-label="회피">회피</button>
+  <button class="rb item" data-k="item" data-n="1" aria-label="호루라기">호루라기</button>
+  <button class="rb dodge" data-k="dodge" aria-label="어깨빵">어깨빵</button>
   <button class="rb atk" data-k="atk" aria-label="공격">공격</button>
 </div>
 
@@ -226,7 +234,7 @@ function shadow(x, y, w) {
 // ------------------------------------------------------------------ input
 const keys = {}, pressed = {};
 const MAP = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', KeyA: 'left', KeyD: 'right', KeyW: 'up', KeyS: 'down',
-  KeyZ: 'atk', KeyJ: 'atk', Space: 'atk', KeyX: 'dodge', KeyK: 'dodge', KeyC: 'ult', KeyL: 'ult', KeyV: 'guide', KeyU: 'guide',
+  KeyZ: 'atk', KeyJ: 'atk', Space: 'atk', KeyX: 'dodge', KeyK: 'dodge', KeyC: 'ult', KeyL: 'ult', KeyV: 'guide', KeyU: 'guide', KeyF: 'item', KeyI: 'item',
   Enter: 'start', KeyP: 'pause', Escape: 'pause', KeyM: 'mute' };
 function press(a) { if (!keys[a]) pressed[a] = true; keys[a] = true; ainit(); }
 function release(a) { keys[a] = false; }
@@ -287,7 +295,7 @@ function moveInput() {
   return { x: joy.x / m, y: joy.y / m, m: Math.min(1, (m - 0.15) / 0.75) };
 }
 const confirmPressed = () => pressed.start || pressed.atk || pressed.tap;
-const KEYNAME = isTouch ? { atk: '공격', dodge: '회피', ult: '궁극기', guide: '안내' } : { atk: 'Z', dodge: 'X', ult: 'C', guide: 'V' };
+const KEYNAME = isTouch ? { atk: '공격', dodge: '어깨빵', ult: '궁극기', guide: '안내', item: '아이템' } : { atk: 'Z', dodge: 'X', ult: 'C', guide: 'V', item: 'F' };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 
@@ -296,6 +304,7 @@ const ICONS = {
   atk: ['.........##', '........#WW#', '.......#WW#.', '......#RR#..', '.....#RR#...', '....#RR#....', '...#GG#.....', '..#GG#......', '.#GG#.......', '..#.........'],
   dodge: ['............', '..##....##..', '.#WW#..#WW#.', '..#WW#..#WW#', '...#WW#..#WW#', '..#WW#..#WW#', '.#WW#..#WW#.', '..##....##..'],
   ult: ['.....#.....', '....#Y#....', '#...#Y#...#', '.#.#YYY#.#.', '..#YYWYY#..', '##YYWWWYY##', '..#YYWYY#..', '.#.#YYY#.#.', '#...#Y#...#', '....#Y#....', '.....#.....'],
+  item: ['.....##.....', '....#..#....', '...#....#...', '.#######....', '#YYYYYYY##..', '#YYWYYYYYY#.', '#YYYYYYYYY#.', '.#YYYYYYY#..', '..#######...'],
   guide: ['....##.....', '...#WW#....', '...#WW#....', '...#WW###..', '.###WWWWW#.', '#WW#WWWWWW#', '#WWWWWWWWW#', '.#WWWWWWW#.', '..#WWWWW#..', '...#####...'],
 };
 function pxButton(n, face, light, dark, icon, pressed) {
@@ -341,7 +350,7 @@ function pxStick(n) {
 }
 function buildPixelUI() {
   const set = (el, k, v) => el && el.style.setProperty(k, `url(${v})`);
-  const P = { atk: ['#d8403a', '#ff8a7a', '#8e2228'], dodge: ['#2f6fd8', '#9ad4ff', '#1c3a8c'], ult: ['#4a4470', '#8a84a8', '#2a2448'], guide: ['#2f9e4a', '#8fe39a', '#1c5e2c'] };
+  const P = { atk: ['#d8403a', '#ff8a7a', '#8e2228'], dodge: ['#2f6fd8', '#9ad4ff', '#1c3a8c'], ult: ['#4a4470', '#8a84a8', '#2a2448'], guide: ['#2f9e4a', '#8fe39a', '#1c5e2c'], item: ['#8a90a0', '#e8ecf4', '#4a5060'] };
   const READY = { ult: ['#e8a020', '#fff08a', '#9a6010'], guide: ['#3fc060', '#c8f5cc', '#1c6e34'] };
   document.querySelectorAll('.rb').forEach(b => {
     const k = b.dataset.k, [f, l, d] = P[k], n = k === 'atk' ? 24 : 18;
@@ -970,8 +979,13 @@ const STAGES = [
 STAGES.forEach(s => { if (!s.waves) s.waves = genWaves(s.n * 977, s.end, s.pool, s.helpers, s.extra); });
 const ENDING_STAGE = { n: 6, from: '구로', to: '인천', segs: [['plat', 0, 3000]], sky: 'dusk', far: 'sea', vend: null, signs: [[580, '인천', 'Incheon · 종점']], ads: [] };
 
+const TUT_STAGE = { n: 0, title: '출근 전 안전교육', from: '교육장', to: '소요산', clock: 320, end: 900, segs: [['plat', 0, 900]], sky: 'dawn', far: 'mtn', vend: null, signs: [[40, '교육장', '안전교육 승강장']], ads: [], bgm: 's1', bossBgm: 'boss', bosses: [], mul: 1, items: [], waves: [], props: [['elev', 400]], belts: [], intro: [] };
+const DROPS = { 1: ['pw_long'], 2: ['whistle', 'pw_long'], 3: ['pw_led', 'whistle', 'pw_long'], 4: ['pw_spin', 'whistle', 'pw_led', 'pw_long'], 5: ['pw_fire', 'whistle', 'pw_spin', 'pw_led', 'pw_long'] };
+
 // ------------------------------------------------------------------ extra audio for the rampage version
 Object.assign(SFX, {
+  whistle() { const t = now(); for (let i = 0; i < 6; i++) tone(t + i * 0.05, i % 2 ? 2900 : 2500, 0.06, 'square', 0.07); tone(t + 0.3, 2700, 0.35, 'square', 0.06); },
+  zap() { const t = now(); nz(t, 0.08, 0.12, 3000); tone(t, 1200, 0.08, 'sawtooth', 0.05, 0.4); },
   punch() { const t = now(); nz(t, 0.07, 0.22, 900, 'lowpass'); tone(t, 140, 0.08, 'square', 0.14, 0.5); },
   heavy() { const t = now(); nz(t, 0.14, 0.3, 600, 'lowpass'); tone(t, 110, 0.16, 'square', 0.18, 0.4); },
   swing() { nz(now(), 0.08, 0.06, 3000, 'bandpass'); },
@@ -1027,7 +1041,8 @@ const TIPS_SHOWN = {};
 const TIPS = {
   start: () => isTouch ? '왼쪽 아무 곳이나 눌러 조이스틱 · 많이 밀수록 빨라요' : '←→↑↓ 이동',
   atk: () => `${KEYNAME.atk} 연타: 3단 콤보 · 마지막 한 방은 날려버린다`,
-  dodge: () => `${KEYNAME.dodge}: 짧은 무적 구르기 · 공격 후딜도 끊을 수 있다`,
+  dodge: () => `${KEYNAME.dodge}: MP 10을 써서 어깨로 돌진 · 잠깐 무적 + 몸통 박치기`,
+  item: k => `NEW! ${PW[k].name} — ${PW[k].desc}`,
   rage: () => `파란 MP(폭주 게이지)는 때리고 맞을수록 찬다 · 100: 궁극기 1단, 200: 2단 ${KEYNAME.ult}!`,
   vend: () => '자판기도 때릴 수 있다 (민원 주의)',
   guide: () => `초록 표시 승객은 때리지 말고 ${KEYNAME.guide} 안내 3번! 성공하면 보상이 있다`,
@@ -1035,7 +1050,7 @@ const TIPS = {
 };
 const freshTot = () => ({ kos: 0, guided: 0, dmg: 0, deaths: 0, maxCombo: 0, time: 0, ults: 0, vend: 0, scores: [] });
 function newGame(si = 0, tot = null) {
-  STG = STAGES[si]; END = STG.end; ARENA_L = END - 480; WAVES = STG.waves;
+  STG = si < 0 ? TUT_STAGE : STAGES[si]; END = STG.end; ARENA_L = END - 480; WAVES = STG.waves;
   game = {
     stage: si, tot: tot || freshTot(), bossIdx: 0,
     camX: 0, p: { x: 60, y: 205, face: 1, hp: 100, inv: 0, hurtT: 0, kx: 0, walkT: 0, moving: false, dodgeT: 0, dodgeCD: 0, dvx: 0, dvy: 0, atk: null, buf: false, say: null, guideT: 0, stopT: 0 },
@@ -1044,7 +1059,9 @@ function newGame(si = 0, tot = null) {
     boss: null, phase: 'stage', shake: 0, hitstop: 0, slow: 0, flash: 0, boarded: false,
     train: { x: W + 200, wait: 140 }, trainSeed: 0, vend: STG.vend ? { x: STG.vend, hp: 3, broken: false } : null,
     ult: null, banner: null, fade: null, dlg: null, over: null, end: null, cardT: 0, clearT: 0,
+    pw: null, whistle: 0, koSinceDrop: 0, sigDropped: false, whistleUsed: 0, dashes: 0, tutHits: 0, tutFin: 0, tut: null,
   };
+  game.rage = 30;
 }
 function startStage(si, tot) {
   newGame(si, tot); state = 'stagecard'; game.cardT = 0; bgm(null); SFX.chime();
@@ -1076,7 +1093,7 @@ const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 function floatText(x, y, str, color = '#fff', size = 9) { game.floats.push({ x, y, str, color, size, t: 0 }); }
 function say(ent, str, life = 110) { ent.say = { str, life }; }
 function toast(str, life = 230) { game.toast = { str, life, t: 0 }; }
-function tip(k) { if (TIPS_SHOWN[k]) return; TIPS_SHOWN[k] = 1; toast(TIPS[k]()); }
+function tip(k, arg) { if (game && game.tut) return; if (TIPS_SHOWN[k + (arg || '')]) return; TIPS_SHOWN[k + (arg || '')] = 1; toast(TIPS[k](arg), 280); }
 function puff(x, y, n = 6, color = '#e8e4d8') { for (let i = 0; i < n; i++) game.fx.push({ type: 'p', x: x + rnd2(-6, 6), y: y - rnd2(0, 4), vx: rnd2(-0.8, 0.8), vy: rnd2(-1.2, -0.2), life: rnd2(14, 26), color, s: Math.random() < 0.4 ? 2 : 1 }); }
 function sparks(x, y, color = '#fff3a0', n = 8, sp = 2.6) { for (let i = 0; i < n; i++) { const a = rnd2(0, Math.PI * 2), v = rnd2(1, sp); game.fx.push({ type: 'p', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: rnd2(10, 18), color, s: 2 }); } }
 function dialog(lines, done) { game.dlg = { lines, i: 0, ch: 0, done }; if (state !== 'dialog') prevState = state; state = 'dialog'; }
@@ -1093,12 +1110,13 @@ const ATK = {
 const HERO_LINES = ['오늘은 안 참는다!', '소집해제 하루 전이다!!', '1호선의 평화를 위하여!', '어깨빵은 이제 그만!', '이것도 근무다!'];
 function startAtk(k) { const p = game.p; p.atk = { k, t: 0, hit: new Set() }; p.buf = false; }
 function inHitBox(p, A, x, y, extra = 0, dy = 15) { const rel = (x - p.x) * p.face; return rel > -8 && rel < A.reach + extra && Math.abs(y - p.y) < dy; }
-function doHits(p, A) {
-  const G = game;
+function doHits(p, A0) {
+  const G = game, pk = G.pw && G.pw.k;
+  const A = { ...A0, reach: A0.reach + (pk === 'pw_long' ? 50 : 0), dmg: Math.round(A0.dmg * (pk === 'pw_fire' ? 1.8 : 1)), kb: A0.kb * (pk === 'pw_fire' ? 1.5 : 1) };
   for (const h of G.helpers) { if (h.st !== 'leave' && h.cool <= 0 && inHitBox(p, A, h.x, h.y, -6)) { stopSwing(h); return; } }
   G.ents.forEach(e => {
     if (e.dead || p.atk.hit.has(e) || ['fly', 'ko', 'down', 'rise'].includes(e.st)) return;
-    if (inHitBox(p, A, e.x, e.y)) { p.atk.hit.add(e); hitEnemy(e, A.dmg, A.kb, A.launch); }
+    if (inHitBox(p, A, e.x, e.y)) { p.atk.hit.add(e); hitEnemy(e, A.dmg, A.kb, A.launch); if (pk === 'pw_led') chainZap(e, A.dmg); if (pk === 'pw_fire') sparks(e.x, e.y - 34, '#ff8a2a', 8); }
   });
   const b = G.boss;
   if (b && G.phase === 'boss' && !b.hidden && !p.atk.hit.has(b) && !['intro', 'fly', 'down', 'rise', 'ko', 'kolie'].includes(b.st) && inHitBox(p, A, b.x, b.y, b.def.big ? 30 : 6, b.def.big ? 26 : 15)) { p.atk.hit.add(b); hitBoss(A.dmg, A.kb, A.launch); }
@@ -1114,7 +1132,7 @@ function comboUp() { const G = game; G.combo++; G.comboT = 90; G.maxCombo = Math
 function hitEnemy(e, dmg, kb, launch) {
   const G = game, p = G.p;
   const dir = sign(e.x - p.x) || p.face;
-  e.hp -= dmg; e.flash = 8; comboUp(); addRage(4);
+  e.hp -= dmg; e.flash = 8; comboUp(); addRage(4); G.tutHits++; if (launch) G.tutFin++; e.stun = 0;
   sparks(e.x - dir * 6, e.y - 34, launch ? '#fff3a0' : '#ffffff', launch ? 12 : 6);
   floatText(e.x, e.y - 64, String(dmg), launch ? '#f5c92e' : '#ffffff', launch ? 10 : 8);
   if (e.type === 'sleepy' && !e.angry) { e.angry = true; say(e, '뭐야! 자는데!!', 80); }
@@ -1125,14 +1143,14 @@ function hitEnemy(e, dmg, kb, launch) {
   } else if (launch) {
     e.st = 'fly'; e.t = 0; e.vx = dir * 2.6; e.vz = 3.0; e.z = Math.max(e.z, 1); e.ldir = dir; G.hitstop = 4; G.shake = 3; SFX.heavy();
   } else {
-    e.st = 'hurt'; e.t = 0; e.vx = dir * kb; G.hitstop = 2; SFX.punch();
+    e.st = 'hurt'; e.t = 0; e.vx = dir * kb * (e.dummy ? 0.3 : 1); G.hitstop = 2; SFX.punch();
     if (e.type === 'bully' && !e.saidHit) { e.saidHit = true; say(e, '어? 쳤어? 지금 쳤어?!', 80); }
   }
 }
 function hurt(amount, fromX) {
   const G = game, p = G.p;
   amount = Math.round(amount * (1 + (STG.n - 1) * 0.08));
-  if (p.inv > 0 || (G.ult && G.ult.t < 70)) { if (p.dodgeT > 0) floatText(p.x, p.y - 70, '회피!', '#9ad4ff', 8); return false; }
+  if (p.inv > 0 || (G.ult && G.ult.t < 70)) { if (p.dodgeT > 0) floatText(p.x, p.y - 70, '무적!', '#9ad4ff', 8); return false; }
   const dir = sign(fromX - p.x) || p.face;
   p.hp -= amount; G.dmg += amount; p.hurtT = 18; p.inv = 48; p.kx = -dir * 3.2; p.atk = null; G.combo = 0;
   G.shake = 6; SFX.hit(); addRage(6);
@@ -1164,6 +1182,7 @@ function updateEnt(e) {
   if (e.st === 'ko') {
     if (e.t > 75) {
       e.dead = true; puff(e.x, e.y, 8, '#ffffff');
+      if (G.tut || dropPower(e)) return;
       const r = Math.random(); if (r < 0.22) G.items.push({ k: 'milk', x: e.x, y: e.y, t: 0 }); else if (r < 0.3) G.items.push({ k: 'kimbap', x: e.x, y: e.y, t: 0 }); else if (r < 0.36) G.items.push({ k: 'coffee', x: e.x, y: e.y, t: 0 });
     }
     return;
@@ -1171,6 +1190,8 @@ function updateEnt(e) {
   if (e.st === 'down') { if (e.t > 34) { e.st = 'rise'; e.t = 0; } return; }
   if (e.st === 'rise') { if (e.t > 14) { e.st = 'walk'; e.t = 0; e.cd = 40; } return; }
   if (e.st === 'hurt') { e.x += e.vx; e.vx *= 0.8; if (e.t > 14) { e.st = 'walk'; e.t = 0; e.cd = Math.max(e.cd, 20); } clampEnt(e); return; }
+  if (e.stun > 0) { e.stun--; e.mv = false; if (e.st !== 'sleep') { e.st = 'walk'; e.t = 0; } clampEnt(e); return; }
+  if (e.dummy) { e.mv = false; e.face = p.x < e.x ? -1 : 1; e.st = 'walk'; clampEnt(e); return; }
   if (e.cd > 0) e.cd--;
   const dx = p.x - e.x, adx = Math.abs(dx), ady = Math.abs(p.y - e.y);
   if (!e.in && e.x > G.camX + 14 && e.x < G.camX + W - 14) e.in = true;
@@ -1247,23 +1268,23 @@ const BOSSDEF = {
     intro: [B1('자자~ 효자손이 단돈 천원! 건전지도 있어요, 무릎담요도 있고!'), H_('아저씨. 저 오늘 소집해제 하루 전이거든요.'), B1('그래서 뭐? 공익 양반도 하나 사! 안 사면 이 칸 못 지나가!'), H_('…그러니까 오늘은 안 참는다고요.')] },
   ninja: { name: '전단 닌자', hp: 300, sp: 1.35, keep: 120, color: '#5f8cff', acts: ['throw3', 'dash', 'blink'], acts2: ['throw3', 'blink', 'throw3', 'dash', 'blink'], summon: ['salary', 'salary'],
     say: { throw3: ['전단 수리검!', '대출 문의 환영~'], dash: ['붙이고 튄다!'], blink: ['닌자는 사라진다…'], hurt: ['큭, 들켰나!', '전단이 찢어졌다!'], p2: '전단 부대, 집합!' },
-    ko: '…오늘 전단은 다 못 붙였네…', tip: '사라졌다 나타나면 바로 칼질이 온다! 회피로 피하고 반격하세요',
+    ko: '…오늘 전단은 다 못 붙였네…', tip: '사라졌다 나타나면 바로 칼질이 온다! 어깨빵 대시로 피하고 반격하세요',
     intro: [B2('……'), H_('열차 창문마다 대출 전단이… 너였구나.'), B2('닌자는 들키지 않는다. 붙이고, 사라질 뿐.'), H_('지금 들켰잖아요.')] },
   drunk: { name: '만취 고성방가왕', hp: 240, sp: 0.8, keep: 70, color: '#d8403a', acts: ['shout', 'stagger', 'dash'], acts2: ['shout', 'stagger', 'shout', 'dash'], summon: ['bully', 'bully'],
     say: { shout: ['내가 왕년에~~!!', '노래 한 곡 뽑는다~!'], stagger: ['어어어… 세상이 돈다~'], dash: ['비켜~~ 딸꾹!'], hurt: ['딸꾹!', '아야… 술 깬다…'], p2: '2차 가자~~!!' },
-    ko: '…zzZ (열차에서 잠듦)', tip: '음파 고리는 회피 무적으로 통과! 비틀대다 넘어지면 몰아치세요',
+    ko: '…zzZ (열차에서 잠듦)', tip: '음파 고리는 어깨빵 무적으로 통과! 비틀대다 넘어지면 몰아치세요',
     intro: [B3('야~ 거기 공익~! 이리 와서 한 잔 해~!'), H_('…아직 오전 11시인데요.'), B3('해장술이야 해장술~! 딸꾹!')] },
   mega: { name: '확성기 대연설왕', hp: 340, sp: 0.7, keep: 140, color: '#f08a24', acts: ['ring', 'beam', 'ring'], acts2: ['ring3', 'beam', 'summon', 'ring'], summon: ['bully', 'bully'],
     say: { ring: ['여러분~~!! 들어 보세요~!!', '(웅얼웅얼 웅얼웅얼)'], ring3: ['확성기 최대 출력!!'], beam: ['직격 연설!!'], summon: ['지지자 여러분 나와 주세요!'], hurt: ['연설 방해다!', '마이크 테스트… 아야!'], p2: '목소리를 더 키우겠습니다!!' },
-    ko: '……(확성기 배터리 방전)', tip: '고리는 회피로 통과! 연설 준비 중엔 버티니, 쏜 직후를 노리세요',
+    ko: '……(확성기 배터리 방전)', tip: '고리는 어깨빵으로 통과! 연설 준비 중엔 버티니, 쏜 직후를 노리세요',
     intro: [B4('여러분~~!! (웅얼웅얼웅얼) 하셔야 합니다~!!'), H_('선생님, 열차 내 연설은 금지입니다.'), B4('공익이 뭘 안다고! 들어 보세요 여러분~~!!')] },
   door: { name: '출입문 수문장', hp: 380, sp: 0.75, keep: 90, color: '#c3c9d2', acts: ['quake', 'dash', 'quake'], acts2: ['quake', 'spin', 'dash', 'quake'], summon: ['hiker', 'salary'],
     say: { quake: ['문 닫지 마!!', '쾅!!'], dash: ['일행 온다고!!'], spin: ['출입문 회전 수비!'], hurt: ['문이… 문이 닫힌다!', '으읏!'], p2: '일행 아직 안 왔다고오!!' },
-    ko: '…일행은… 다음 열차 탄대…', tip: '지면 충격파는 회피로 넘기세요. 돌진 뒤 지친 틈이 기회!',
+    ko: '…일행은… 다음 열차 탄대…', tip: '지면 충격파는 어깨빵으로 넘기세요. 돌진 뒤 지친 틈이 기회!',
     intro: [B5('이 문 못 닫는다! 일행 오고 있어!'), H_('선생님 때문에 열차가 20분째 지연이에요.'), B5('5분만! 아니 10분만!!')] },
   legion: { name: '러시아워 레기온', hp: 600, sp: 0.75, keep: 130, big: true, color: '#6a88e8', acts: ['push', 'toss', 'bag', 'toss', 'quake'], acts2: ['push', 'toss', 'summon', 'toss', 'quake', 'bag', 'push'], summon: ['salary', 'bully', 'hiker'],
     say: { toss: ['승객 투척!!', '너도 타!! 아니 내려!!', '환승객 발사!!'], push: ['밀어!! 밀어!!', '타야 돼!! 타야 돼!!'], bag: ['가방 날아간다~!'], quake: ['쿵!! 쿵!!'], summon: ['퇴근 인파 증원!'], hurt: ['으아아…', '아직 환승 남았어…'], p2: '신도림 환승객 합류!!' },
-    ko: '…집에… 가고 싶다……', tip: '거대 인파 밀기는 회피 무적으로! 궁극기는 아껴 뒀다 쓰세요',
+    ko: '…집에… 가고 싶다……', tip: '거대 인파 밀기는 어깨빵 무적으로! 궁극기는 아껴 뒀다 쓰세요',
     intro: [B6('타…야…돼… 타야… 돼…'), H_('수십 명의 퇴근이 하나로 뭉쳤다…'), H_('…나도 퇴근하고 싶다고!!')] },
 };
 function startBoss() {
@@ -1591,7 +1612,9 @@ function updatePlay() {
   if (canAct && pressed.ult) { if (G.rage >= 100 && !G.ult) startUlt(G.rage >= 200 ? 2 : 1); else if (!G.ult) floatText(p.x, p.y - 72, `MP ${Math.floor(G.rage)}/100 · 더 모아야 해`, '#6ab4ff', 8); }
   if (canAct && pressed.dodge && p.dodgeCD <= 0 && p.dodgeT <= 0) {
     const A = p.atk ? ATK[p.atk.k] : null;
-    if (!A || p.atk.t >= A.start + A.act) {
+    if (G.rage < DASH_MP && !G.ult) { floatText(p.x, p.y - 72, `MP 부족 · 어깨빵은 MP ${DASH_MP}`, '#6ab4ff', 8); SFX.sel(); }
+    else if (!A || p.atk.t >= A.start + A.act) {
+      if (!G.ult) G.rage -= DASH_MP; G.dashes++; p.dashHit = new Set(); say(p, pick(['어깨빵!!', '비켜요!!', '실례합니다!!']), 30);
       p.atk = null;
       let dx = mv.m ? mv.x : p.face, dy = mv.m ? mv.y : 0;
       const l = Math.hypot(dx, dy) || 1; p.dvx = dx / l * 3.9; p.dvy = dy / l * 2.5;
@@ -1599,6 +1622,9 @@ function updatePlay() {
     }
   }
   if (canAct && pressed.guide) doGuide();
+  if (canAct && pressed.item) useWhistle();
+  updatePower();
+  if (G.tut) updateTut();
   if (canAct && pressed.atk && p.dodgeT <= 0) { if (!p.atk) { startAtk('j1'); } else p.buf = true; }
   if (p.atk) {
     const A = ATK[p.atk.k]; p.atk.t++;
@@ -1612,6 +1638,10 @@ function updatePlay() {
   if (p.dodgeT > 0) {
     p.dodgeT--; p.x += p.dvx; p.y += p.dvy;
     if (p.dodgeT % 3 === 0) G.fx.push({ type: 'ghost', spr: 'hero_walkB', x: p.x, y: p.y, left: p.face < 0, life: 12 });
+    if (p.dashHit) {
+      G.ents.forEach(e => { if (!e.dead && !p.dashHit.has(e) && !['fly', 'ko', 'down', 'rise'].includes(e.st) && Math.abs(e.x - p.x) < 22 && Math.abs(e.y - p.y) < 13) { p.dashHit.add(e); hitEnemy(e, 6, 3, false); SFX.heavy(); } });
+      const b = G.boss; if (b && G.phase === 'boss' && !b.hidden && !p.dashHit.has(b) && !['intro', 'fly', 'down', 'rise', 'kolie'].includes(b.st) && Math.abs(b.x - p.x) < (b.def.big ? 40 : 24) && Math.abs(b.y - p.y) < 15) { p.dashHit.add(b); hitBoss(5, 0, false); }
+    }
   } else if (!p.atk && canAct) {
     const sp = 1.95 * mv.m * (p.guideT > 0 ? 0.35 : 1);
     p.x += mv.x * sp; p.y += mv.y * sp * 0.7;
@@ -1644,14 +1674,14 @@ function updatePlay() {
     if (s.h) spawnHelper(s.h, x, y); else spawn(s.t, x, y);
     return false;
   });
-  if (G.lock && !G.pending.length && !G.ents.some(e => !e.dead && !e.koing)) {
+  if (!G.tut && G.lock && !G.pending.length && !G.ents.some(e => !e.dead && !e.koing)) {
     G.lock = false; G.wave++; G.go = 150; SFX.go();
     if (G.wave === 1) tip('rage');
   }
   // tips
-  if (G.time === 30) tip('start');
-  if (G.wave === 0 && G.lock && G.time > 60) tip('atk');
-  if (G.wave >= 1 && G.time > 400) tip('dodge');
+  if (G.tut) {} else if (G.time === 30) tip('start');
+  if (!G.tut && G.wave === 0 && G.lock && G.time > 60) tip('atk');
+  if (!G.tut && G.wave >= 1 && G.time > 400) tip('dodge');
   if (G.vend && Math.abs(p.x - G.vend.x) < 120 && !G.vend.broken) tip('vend');
 
   // boarding
@@ -1670,10 +1700,11 @@ function updatePlay() {
   updateProjs();
   G.items = G.items.filter(it => {
     it.t++;
+    if (it.life && it.t > it.life) { puff(it.x, it.y, 5); return false; }
     if (Math.abs(it.x - p.x) < 13 && Math.abs(it.y - p.y) < 10) { useItem(it.k); return false; }
     return true;
   });
-  if (G.phase === 'stage' && G.wave >= WAVES.length && G.camX >= ARENA_L - 1 && p.x > ARENA_L + 80) startBoss();
+  if (!G.tut && G.phase === 'stage' && G.wave >= WAVES.length && G.camX >= ARENA_L - 1 && p.x > ARENA_L + 80) startBoss();
   if (G.phase === 'stage' && G.wave >= WAVES.length && !G.lock) G.camX = Math.min(G.camX, ARENA_L);
   stepFx();
   if (G.koBanner) G.koBanner.t++;
@@ -1704,8 +1735,129 @@ function stepFx() {
   if (G.toast) { G.toast.t++; if (G.toast.t > G.toast.life) G.toast = null; }
   if (G.banner) { G.banner.t++; if (G.banner.t > G.banner.life) G.banner = null; }
 }
+const DASH_MP = 10;
+const PW = {
+  pw_long: { name: '연장 경광봉', dur: 1800, desc: '30초 동안 공격 거리 2배', col: '#ff6a5a' },
+  pw_led: { name: 'LED 전기봉', dur: 1800, desc: '30초 동안 맞은 적 주변으로 감전 연쇄', col: '#6ae8ff' },
+  pw_spin: { name: '회전 차단봉', dur: 1200, desc: '20초 동안 몸 주위를 도는 차단봉이 자동 공격', col: '#ffb04a' },
+  pw_fire: { name: '불꽃 경광봉', dur: 1500, desc: '25초 동안 공격력 1.8배 + 강한 넉백', col: '#ff8a2a' },
+  whistle: { name: '호루라기', desc: `${isTouch ? '아이템 버튼' : 'F 키'}로 불면 주변 적이 3초 기절 (최대 3개)`, col: '#e8ecf4' },
+};
+function dropPower(e) {
+  const G = game, pool = DROPS[STG.n]; if (!pool) return false;
+  if (G.items.filter(it => PW[it.k]).length >= 2) return false;
+  G.koSinceDrop++;
+  let k = null;
+  if (!G.sigDropped && G.wave >= 1) { k = pool[0]; G.sigDropped = true; }
+  else if (Math.random() < 0.15 || G.koSinceDrop >= 8) k = Math.random() < 0.55 ? pool[0] : pick(pool);
+  if (!k) return false;
+  G.koSinceDrop = 0; G.items.push({ k, x: e.x, y: e.y, t: 0, life: 720 }); sparks(e.x, e.y - 20, PW[k].col, 10);
+  return true;
+}
+
+// ------------------------------------------------------------------ tutorial (출근 전 안전교육)
+const tutDone = () => { try { return localStorage.getItem('gongik-tut') === '1'; } catch (_) { return false; } };
+const KEYT = k => isTouch ? `[${KEYNAME[k]}] 버튼` : `${KEYNAME[k]} 키`;
+function tutDummies(n) {
+  const G = game; G.ents = G.ents.filter(e => !e.dummy);
+  for (let i = 0; i < n; i++) { const e = spawn('salary', 372 + i * 30, 196 + (i % 2) * 22); e.dummy = true; e.hp = 60; e.in = true; e.say = null; }
+}
+const TUT = [
+  { t: '걸어서 이동하기', d: () => isTouch ? '왼쪽 화면을 누른 채 오른쪽으로 끌어서 노란 화살표까지 걸어가세요' : '방향키 → 로 노란 화살표까지 걸어가세요', hint: 'stick', setup: G => { G.tutMark = 330; }, done: G => G.p.x >= 314 },
+  { t: '공격하기', d: () => `${KEYT('atk')}을 눌러 교육용 허수아비를 3번 때려 보세요`, hint: 'atk', dum: 1, setup: G => { G.tutMark = null; G.tutHits = 0; tutDummies(1); }, done: G => G.tutHits >= 3 },
+  { t: '3단 콤보', d: () => `${KEYT('atk')}을 빠르게 3번 연타! 마지막 세 번째 한 방이 적을 날려버려요`, hint: 'atk', dum: 1, setup: G => { G.tutFin = 0; tutDummies(1); }, done: G => G.tutFin >= 1 },
+  { t: '어깨빵', d: () => `${KEYT('dodge')}: MP ${DASH_MP}를 쓰고 무적으로 돌진해요. 허수아비에게 부딪혀 보세요`, hint: 'dodge', dum: 1, setup: G => { G.rage = Math.max(G.rage, 40); G.dashes = 0; tutDummies(1); }, done: G => G.dashes >= 1 && G.p.dodgeT <= 0 },
+  { t: '궁극기', d: () => `MP가 100을 넘으면 ${KEYT('ult')}! 주변 적을 한 번에 쓸어버려요 (200이면 화면 전체)`, hint: 'ult', dum: 3, setup: G => { G.rage = 110; G.ults = 0; tutDummies(3); }, done: G => G.ults >= 1 && !G.ult },
+  { t: '교통약자 안내', d: () => `초록 표시 승객은 때리면 안 돼요! 옆으로 가서 ${KEYT('guide')}을 3번 누르세요`, hint: 'guide', setup: G => { G.ents = []; G.guided = 0; spawnHelper('wheel', 380, 224); }, done: G => G.guided >= 1 },
+  { t: '아이템', d: () => `떨어진 아이템을 주워요. 경광봉은 30초 강화, 호루라기는 ${KEYT('item')}로 불면 주변 적 기절!`, hint: 'item', dum: 3, setup: G => { G.whistleUsed = 0; G.items.push({ k: 'pw_long', x: 250, y: 210, t: 0 }, { k: 'whistle', x: 290, y: 210, t: 0 }); tutDummies(3); }, done: G => G.whistleUsed >= 1 },
+];
+function startTutorial() {
+  newGame(-1); const G = game;
+  G.tut = { step: -1, t: 0, ok: 0 }; G.lock = true; G.p.x = 80; state = 'play'; bgm(STG.bgm);
+  dialog([R_('김공익 요원, 소집해제 전날이라도 안전교육은 받고 근무 들어간다.'), H_('…마지막 날까지요?'), R_('규정이다. 교육용 허수아비로 연습해 봐. 진짜 승객 말고!'), H_('(허수아비라도 오늘은 안 참는다.)')], () => { G.tut.step = 0; TUT[0].setup(G); });
+}
+function finishTut() { try { localStorage.setItem('gongik-tut', '1'); } catch (_) {} startStage(0, null); }
+function updateTut() {
+  const G = game, T = G.tut; if (!T || T.step < 0) return;
+  T.t++;
+  if (T.step >= TUT.length) { if (T.t > 170) finishTut(); return; }
+  const S = TUT[T.step];
+  if (T.ok > 0) { if (--T.ok === 0) { T.step++; T.t = 0; if (T.step < TUT.length) TUT[T.step].setup(G); else { SFX.clear(); } } return; }
+  if (S.dum && !G.ents.some(e => e.dummy && !e.dead && !e.koing) && T.t % 50 === 0) tutDummies(S.dum);
+  if (S.done(G)) { T.ok = 60; SFX.go(); floatText(G.p.x, G.p.y - 86, '좋아요!', '#8fe39a', 13); sparks(G.p.x, G.p.y - 40, '#8fe39a', 14, 3); }
+}
+const tutHint = () => { const T = game && game.tut; return T && T.step >= 0 && T.step < TUT.length && !T.ok ? TUT[T.step].hint : null; };
+function drawTutPanel(cx) {
+  const G = game, T = G.tut; if (!T || T.step < 0) return;
+  if (G.tutMark && T.step === 0) {
+    const x = G.tutMark - cx, b = Math.abs(Math.sin(tick / 8)) * 6;
+    rectK(x - 5, 150 - b, 10, 10, '#f5c92e'); rectK(x - 9, 160 - b, 18, 3, '#f5c92e'); rectK(x - 6, 163 - b, 12, 3, '#f5c92e'); rectK(x - 3, 166 - b, 6, 3, '#f5c92e');
+    for (let a = 0; a < 6.28; a += 0.3) rectK(x + Math.cos(a) * 16, 210 + Math.sin(a) * 6, 2, 1, '#f5c92e');
+  }
+  const x0 = showFs() ? 190 : 166, w = showFs() ? 282 : 306, y0 = 52;
+  if (T.step >= TUT.length) {
+    rectK(x0, y0, w, 52, 'rgba(14,10,30,0.94)'); rectK(x0, y0, w, 3, '#8fe39a');
+    txt('안전교육 수료!', W / 2, y0 + 24, 16, '#8fe39a', 'center');
+    txt('이제 진짜 출근이다 · 1구간 소요산 → 동두천', W / 2, y0 + 40, 9, '#f4efe4', 'center', false);
+    return;
+  }
+  const S = TUT[T.step];
+  rectK(x0, y0, w, 62, 'rgba(14,10,30,0.92)'); rectK(x0, y0, 3, 62, '#f5c92e');
+  txt(`안전교육 ${T.step + 1} / ${TUT.length}`, x0 + 10, y0 + 12, 8, '#f5c92e', 'left', false);
+  txt(T.ok ? '✔ 잘했어요!' : S.t, x0 + 10, y0 + 27, 12.5, T.ok ? '#8fe39a' : '#ffffff', 'left');
+  wrapText(S.d(), x0 + 10, y0 + 40, w - 18, 8.2, '#d9d4f0', 10);
+  txt(isTouch ? 'Ⅱ → 건너뛰기' : 'Esc → 건너뛰기', x0 + w - 6, y0 + 12, 7, '#7a7698', 'right', false);
+}
+function useWhistle() {
+  const G = game, p = G.p;
+  if (G.whistle <= 0) { floatText(p.x, p.y - 72, '아이템이 없다', '#c9c4e8', 8); return; }
+  G.whistle--; G.whistleUsed++; SFX.whistle(); say(p, '삐이이익!!', 40); G.shake = 4;
+  G.fx.push({ type: 'wring', x: p.x, y: p.y, r: 8, life: 26 });
+  G.ents.forEach(e => { if (!e.dead && !['fly', 'ko'].includes(e.st) && Math.hypot(e.x - p.x, (e.y - p.y) * 2) < 170) { e.stun = 180; if (e.st === 'wind' || e.st === 'charge' || e.st === 'atk') { e.st = 'walk'; e.t = 0; } if (Math.random() < 0.5) say(e, pick(['헉!', '귀야!!', '뭐, 뭐야?!']), 50); } });
+  const b = G.boss;
+  if (b && G.phase === 'boss' && !b.koing && Math.abs(b.x - p.x) < 210) {
+    if (b.brk <= 0) b.arm = Math.max(1, b.arm - b.armMax * 0.25);
+    if (['idle', 'wind', 'dashPrep', 'spinPrep', 'recover'].includes(b.st)) { b.st = 'tired'; b.t = 0; b.queue = 0; }
+    say(b, '삐익?! 귀 아파!!', 60); floatText(b.x, b.y - 90, '버팀 -25%', '#f5c92e', 9);
+  }
+  G.projs.forEach(o => { if (Math.hypot(o.x - p.x, (o.y - p.y) * 2) < 170 && o.k !== 'quake') o.dead = true; });
+}
+function chainZap(src, dmg) {
+  const G = game; let n = 0;
+  G.ents.filter(o => o !== src && !o.dead && !['fly', 'ko'].includes(o.st) && Math.hypot(o.x - src.x, o.y - src.y) < 95).sort((a, b) => Math.abs(a.x - src.x) - Math.abs(b.x - src.x)).forEach(o => {
+    if (n++ >= 2) return;
+    G.fx.push({ type: 'zap', x1: src.x, y1: src.y - 34, x2: o.x, y2: o.y - 34, life: 10 });
+    hitEnemy(o, Math.max(1, Math.round(dmg * 0.6)), 1, false); o.stun = Math.max(o.stun || 0, 30);
+  });
+  if (n) SFX.zap();
+}
+function updatePower() {
+  const G = game, p = G.p, w = G.pw;
+  document.body.classList.toggle('hasitem', G.whistle > 0 && state === 'play');
+  const ib = document.querySelector('.rb.item'); if (ib) ib.dataset.n = G.whistle;
+  if (!w) return;
+  w.t--;
+  if (w.t <= 0) { floatText(p.x, p.y - 80, `${PW[w.k].name} 효과 끝`, '#c9c4e8', 8); G.pw = null; return; }
+  if (w.k === 'pw_spin') {
+    const pts = [0, Math.PI].map(o => { const a = tick * 0.13 + o; return { x: p.x + Math.cos(a) * 40, y: p.y + Math.sin(a) * 10 }; });
+    G.ents.forEach(e => { if (e.spinCD > 0) e.spinCD--; if (e.dead || ['fly', 'ko', 'down', 'rise'].includes(e.st) || e.spinCD > 0) return; if (pts.some(q => Math.abs(q.x - e.x) < 15 && Math.abs(q.y - e.y) < 12)) { e.spinCD = 26; hitEnemy(e, 5, 2.2, false); } });
+    const b = G.boss; if (b && G.phase === 'boss' && !b.hidden && !['intro', 'fly', 'down', 'rise', 'kolie'].includes(b.st)) { if (b.spinCD > 0) b.spinCD--; else if (pts.some(q => Math.abs(q.x - b.x) < 22 && Math.abs(q.y - b.y) < 14)) { b.spinCD = 30; hitBoss(4, 0, false); } }
+    G.projs.forEach(o => { if (o.k !== 'ring' && o.k !== 'quake' && pts.some(q => Math.abs(q.x - o.x) < 14 && Math.abs(q.y - o.y) < 12)) { o.dead = true; sparks(o.x, o.y - (o.z || 0), '#ffb04a', 6); } });
+  }
+  if (w.k === 'pw_fire' && tick % 3 === 0) G.fx.push({ type: 'p', x: p.x + p.face * rnd2(14, 22), y: p.y - rnd2(30, 40), vx: rnd2(-0.3, 0.3), vy: -rnd2(0.6, 1.4), life: 14, color: pick(['#ff8a2a', '#ffd040', '#ff4a2a']), s: 2 });
+  if (w.k === 'pw_led' && tick % 5 === 0) G.fx.push({ type: 'p', x: p.x + p.face * rnd2(10, 24), y: p.y - rnd2(28, 40), vx: rnd2(-0.6, 0.6), vy: rnd2(-0.6, 0.6), life: 8, color: pick(['#6ae8ff', '#ffffff']), s: 1 });
+}
 function useItem(k) {
-  const p = game.p; SFX.item();
+  const G = game, p = G.p; SFX.item();
+  if (PW[k]) {
+    tip('item', k);
+    if (k === 'whistle') { G.whistle = Math.min(3, G.whistle + 1); floatText(p.x, p.y - 74, `호루라기 +1 (${G.whistle}/3)`, '#ffffff', 9); return; }
+    if (G.pw && G.pw.k === k) G.pw.t = Math.min(G.pw.t + PW[k].dur, PW[k].dur * 1.5);
+    else G.pw = { k, t: PW[k].dur };
+    G.pw.max = Math.max(PW[k].dur, G.pw.t);
+    floatText(p.x, p.y - 74, `${PW[k].name}!`, PW[k].col, 11); SFX.charge(); sparks(p.x, p.y - 34, PW[k].col, 14, 3);
+    return;
+  }
   if (k === 'milk') { p.hp = Math.min(100, p.hp + 20); floatText(p.x, p.y - 70, '바나나우유 HP+20', '#ffd84a', 8); }
   if (k === 'kimbap') { p.hp = Math.min(100, p.hp + 35); floatText(p.x, p.y - 70, '삼각김밥 HP+35', '#8fe39a', 8); }
   if (k === 'coffee') { addRage(30); floatText(p.x, p.y - 70, '캔커피: MP +30', '#6ab4ff', 8); }
@@ -1917,7 +2069,9 @@ function drawWorld() {
   if (G.boss) { const b = G.boss; list.push({ y: b.y, d: () => drawBoss(b, cx), sh: [b.x - cx, b.y, 36] }); }
   G.items.forEach(it => list.push({ y: it.y, d: () => {
     const im = IM[it.k]; if (!im) return;
+    if (it.life && it.life - it.t < 150 && (tick >> 2) % 2) return;
     const bob = Math.round(Math.sin(it.t / 10) * 2);
+    if (PW[it.k]) { const r = 9 + ((tick >> 3) % 2); g.fillStyle = PW[it.k].col; for (let a = 0; a < 6.28; a += 0.4) g.fillRect(Math.round(it.x - cx + Math.cos(a) * r), Math.round(it.y - 12 + bob + Math.sin(a) * r), 1, 1); }
     g.drawImage(im.im, Math.round(it.x - cx - im.w / 2), Math.round(it.y - im.h - 4 + bob));
   }, sh: [it.x - cx, it.y, 12] }));
   G.projs.forEach(o => {
@@ -1942,9 +2096,20 @@ function drawWorld() {
   }, sh: [o.x - cx, o.y, 10] }); });
   list.forEach(o => { if (o.sh) shadow(o.sh[0], o.sh[1], o.sh[2]); });
   list.sort((a, b) => a.y - b.y).forEach(o => o.d());
+  if (G.pw) {
+    const w = G.pw, hx = p.x - cx;
+    if ((w.k === 'pw_long' || w.k === 'pw_fire' || w.k === 'pw_led') && p.atk && p.atk.t > ATK[p.atk.k].start && p.atk.t <= ATK[p.atk.k].start + ATK[p.atk.k].act + 2) {
+      const len = ATK[p.atk.k].reach + (w.k === 'pw_long' ? 50 : 0), col = PW[w.k].col;
+      g.fillStyle = col; g.fillRect(Math.round(hx + (p.face > 0 ? 10 : -10 - len + 10)), Math.round(p.y - 35), len - 10, 3);
+      g.fillStyle = '#ffffff'; g.fillRect(Math.round(hx + (p.face > 0 ? 10 : -10 - len + 10)), Math.round(p.y - 34), len - 10, 1);
+    }
+    if (w.k === 'pw_spin') [0, Math.PI].forEach(o => { const a = tick * 0.13 + o, x = Math.round(hx + Math.cos(a) * 40), y = Math.round(p.y - 26 + Math.sin(a) * 10); g.fillStyle = '#141018'; g.fillRect(x - 7, y - 2, 14, 5); g.fillStyle = (tick >> 2) % 2 ? '#ffb04a' : '#ffffff'; g.fillRect(x - 6, y - 1, 12, 3); g.fillStyle = '#e8403a'; g.fillRect(x - 6, y - 1, 4, 3); });
+  }
   G.fx.forEach(f => {
     if (f.type === 'p') { g.fillStyle = f.color; g.fillRect(Math.round(f.x - cx), Math.round(f.y), f.s, f.s); }
     else if (f.type === 'ghost') spr(f.spr, f.x - cx, f.y, f.left, true, f.life / 30);
+    else if (f.type === 'zap') { g.fillStyle = f.life % 4 < 2 ? '#ffffff' : '#6ae8ff'; const n = 6; let px = f.x1, py = f.y1; for (let i = 1; i <= n; i++) { const nx = f.x1 + (f.x2 - f.x1) * i / n, ny = f.y1 + (f.y2 - f.y1) * i / n + (i < n ? rnd2(-5, 5) : 0); for (let s = 0; s <= 4; s++) g.fillRect(Math.round(px + (nx - px) * s / 4 - cx), Math.round(py + (ny - py) * s / 4), 2, 2); px = nx; py = ny; } }
+    else if (f.type === 'wring') { const r = 8 + (26 - f.life) * 6.5; g.fillStyle = f.life % 4 < 2 ? '#ffffff' : '#fff3a0'; for (let a = 0; a < 6.283; a += 0.08) g.fillRect(Math.round(f.x - cx + Math.cos(a) * r), Math.round(f.y - 20 + Math.sin(a) * r * 0.45), 2, 2); }
     else if (f.type === 'heart') { const x = Math.round(f.x - cx), y = Math.round(f.y); g.fillStyle = f.life % 10 < 5 ? '#ff6aa0' : '#ff9ac0'; g.fillRect(x - 2, y, 2, 1); g.fillRect(x + 1, y, 2, 1); g.fillRect(x - 2, y + 1, 5, 1); g.fillRect(x - 1, y + 2, 3, 1); g.fillRect(x, y + 3, 1, 1); }
     else if (f.type === 'slash') {
       if (f.life > 18) return;
@@ -1979,6 +2144,8 @@ function drawEnt(e, cx) {
   }
   const lunge = e.type === 'bully' && e.st === 'atk' && e.t < 6 ? e.face * 4 : 0;
   spr(name, x + lunge, y, left, fl);
+  if (e.stun > 0) drawStars(x, y - 62);
+  if (e.dummy) { g.fillStyle = '#f5c92e'; g.fillRect(Math.round(x) - 10, Math.round(y) - 70, 20, 7); g.fillStyle = '#141018'; g.fillRect(Math.round(x) - 9, Math.round(y) - 69, 18, 5); }
 }
 function drawStars(x, y) {
   for (let i = 0; i < 3; i++) { const a = tick / 8 + i * 2.1; const sx = Math.round(x + Math.cos(a) * 10), sy = Math.round(y + Math.sin(a) * 3); g.fillStyle = '#fff3a0'; g.fillRect(sx - 1, sy, 3, 1); g.fillRect(sx, sy - 1, 1, 3); }
@@ -2029,7 +2196,8 @@ function drawHUD() {
   rectK(PAUSE_R.x, PAUSE_R.y, PAUSE_R.w, PAUSE_R.h, '#0e0a1e'); rectK(PAUSE_R.x, PAUSE_R.y, PAUSE_R.w, 1, '#3b3570'); rectK(PAUSE_R.x, PAUSE_R.y + PAUSE_R.h - 1, PAUSE_R.w, 1, '#3b3570');
   rectK(PAUSE_R.x + 8, PAUSE_R.y + 5, 3, 10, '#f4efe4'); rectK(PAUSE_R.x + 15, PAUSE_R.y + 5, 3, 10, '#f4efe4');
   if (showFs()) drawFsBtn(FS_R);
-  if (p.hp > 0 && p.hp <= 10 && (tick >> 3) % 2) txt('체력 위험!', showFs() ? 68 : 38, 66, 11, '#ff6a5a', 'left');
+  drawPowerHUD(showFs() ? 66 : 36, 54);
+  if (p.hp > 0 && p.hp <= 10 && (tick >> 3) % 2) txt('체력 위험!', 8, 86, 11, '#ff6a5a', 'left');
   // route (top-right)
   const prog = clamp(p.x / END, 0, 1);
   rectK(314, 6, 160, 42, '#0e0a1e'); rectK(314, 6, 160, 1, '#3b3570'); rectK(314, 47, 160, 1, '#3b3570');
@@ -2068,7 +2236,25 @@ function drawHUD() {
   }
   // GO
   if (G.go > 0 && (tick >> 3) % 2) { txt('GO ▶', W - 16, 130, 20, '#fff3a0', 'right'); }
-  if (!isTouch) txt(`${KEYNAME.atk} 공격 · ${KEYNAME.dodge} 회피 · ${KEYNAME.ult} 궁극기 · ${KEYNAME.guide} 안내`, 8, 265, 8, 'rgba(244,239,228,0.65)', 'left', false);
+  if (!isTouch) txt(`${KEYNAME.atk} 공격 · ${KEYNAME.dodge} 어깨빵 · ${KEYNAME.ult} 궁극기 · ${KEYNAME.guide} 안내 · ${KEYNAME.item} 아이템`, 8, 265, 8, 'rgba(244,239,228,0.65)', 'left', false);
+}
+function drawPowerHUD(x, y) {
+  const G = game; let yy = y;
+  if (G.pw) {
+    const w = G.pw, d = PW[w.k], im = IM[w.k];
+    const blink = w.t < 180 && (tick >> 3) % 2;
+    rectK(x, yy, 120, 20, '#0e0a1e'); rectK(x, yy, 2, 20, d.col);
+    if (im && !blink) ctx.drawImage(im.im, (x + 4) * K, (yy + 2) * K, 16 * K, 16 * K);
+    txt(d.name, x + 24, yy + 10, 8.5, d.col, 'left');
+    rectK(x + 24, yy + 13, 90, 3, '#2a2440'); rectK(x + 24, yy + 13, 90 * w.t / w.max, 3, d.col);
+    txt(`${Math.ceil(w.t / 60)}초`, x + 116, yy + 10, 7.5, '#ffffff', 'right');
+    yy += 22;
+  }
+  if (G.whistle > 0 && !isTouch) {
+    rectK(x, yy, 96, 16, '#0e0a1e'); rectK(x, yy, 2, 16, '#e8ecf4');
+    const im = IM.whistle; if (im) ctx.drawImage(im.im, (x + 4) * K, (yy + 1) * K, 14 * K, 14 * K);
+    txt(`호루라기 ×${G.whistle}  [F]`, x + 22, yy + 11, 8, '#ffffff', 'left');
+  }
 }
 function drawHudTL(x0, y0, lives, hp, rage) {
   const w = 152, h = 44;
@@ -2226,10 +2412,11 @@ function drawBack() {
 let menu = { kind: 'title', sel: 0 }, menuRects = [], pauseFrom = 'play';
 function menuItems() {
   const fsI = showFs() ? [['fs', '⛶ 전체화면으로 보기']] : [];
-  if (menu.kind === 'title') return progress > 1 ? [['cont', `이어하기 · ${progress}구간부터`], ['new', '처음부터 출근'], ['stages', '구간 선택'], ['help', '조작법'], ...fsI] : [['new', '출근하기'], ['stages', '구간 선택 (노선도)'], ['help', '조작법'], ...fsI];
+  const tutI = [['tut', tutDone() ? '튜토리얼 (안전교육)' : '튜토리얼 (처음이면 추천)']];
+  if (menu.kind === 'title') return progress > 1 ? [['cont', `이어하기 · ${progress}구간부터`], ['new', '처음부터 출근'], ['stages', '구간 선택'], ['help', '조작법'], ...tutI, ...fsI] : [['new', tutDone() ? '출근하기' : '출근하기 (안전교육부터)'], ['stages', '구간 선택 (노선도)'], ['help', '조작법'], ...tutI, ...fsI];
   if (menu.kind === 'stages') return [...STAGES.map((s, i) => ['st' + i, s.from]), ['go', '출발'], ['back', '◀ 뒤로']];
   if (menu.kind === 'help' || menu.kind === 'fshelp') return [['back', '◀ 뒤로']];
-  return [['resume', '계속하기'], ['retry', '이 구간 처음부터'], ['sound', A.muted ? '소리 켜기' : '소리 끄기'], ...fsI, ['main', '메인 메뉴로']];
+  return [['resume', '계속하기'], ['retry', '이 구간 처음부터'], ['sound', A.muted ? '소리 켜기' : '소리 끄기'], ...fsI, ...(game && game.tut ? [['skiptut', '교육 건너뛰고 출근']] : []), ['main', '메인 메뉴로']];
 }
 function menuInput() {
   const items = menuItems();
@@ -2257,7 +2444,9 @@ function menuInput() {
 function doMenu(a) {
   SFX.sel();
   if (a === 'cont') startStage(progress - 1, null);
-  else if (a === 'new') startStage(0, null);
+  else if (a === 'new') { if (tutDone()) startStage(0, null); else startTutorial(); }
+  else if (a === 'tut') startTutorial();
+  else if (a === 'skiptut') finishTut();
   else if (a === 'stages') menu = { kind: 'stages', sel: 0, st: Math.min(progress, STAGES.length) - 1, msg: 0 };
   else if (a === 'go') { if (menu.st < progress) startStage(menu.st, null); else { menu.msg = 100; SFX.hit(); } }
   else if (a === 'help') menu = { kind: 'help', sel: 0 };
@@ -2265,6 +2454,7 @@ function doMenu(a) {
   else if (a === 'fs') { if (!fsEl()) openFsHelp(); }
   else if (a.startsWith('st')) { const i = +a.slice(2); if (menu.st === i && i < progress) startStage(i, null); else { menu.st = i; menu.msg = i < progress ? 0 : 100; } }
   else if (a === 'resume') state = pauseFrom;
+  else if (a === 'retry' && game.tut) startTutorial();
   else if (a === 'retry') { const si = game.stage, tt = game.tot; newGame(si, tt); state = 'play'; bgm(STG.bgm); toast(`${STG.n}구간 처음부터! 목숨 3개`, 200); }
   else if (a === 'sound') A.muted = !A.muted;
   else if (a === 'main') goTitle();
@@ -2275,12 +2465,12 @@ function tapIn(r) { return pressed.tap && tapPos && tapPos.x >= r.x - 4 && tapPo
 function drawMenu(items, cx, y0, w) {
   menuRects = [];
   items.forEach(([k, label], i) => {
-    const x = cx - w / 2, y = y0 + i * 22, sel = i === menu.sel;
-    rectK(x - 1, y - 1, w + 2, 20, '#140e1c');
-    rectK(x, y, w, 18, sel ? '#2b3f9c' : 'rgba(14,10,30,0.88)');
-    if (sel) { rectK(x, y, w, 1, '#f5c92e'); rectK(x, y + 17, w, 1, '#f5c92e'); if ((tick >> 4) % 2) txt('▶', x + 10, y + 13, 9, '#f5c92e', 'center', false); }
-    txt(label, cx, y + 13.5, 11, sel ? '#fff3a0' : '#d9d4f0', 'center', false);
-    menuRects.push({ x, y, w, h: 18 });
+    const st = items.length > 5 ? 19 : 22, x = cx - w / 2, y = y0 + i * st, sel = i === menu.sel;
+    rectK(x - 1, y - 1, w + 2, st - 2, '#140e1c');
+    rectK(x, y, w, st - 4, sel ? '#2b3f9c' : 'rgba(14,10,30,0.88)');
+    if (sel) { rectK(x, y, w, 1, '#f5c92e'); rectK(x, y + st - 5, w, 1, '#f5c92e'); if ((tick >> 4) % 2) txt('▶', x + 10, y + st / 2 + 2, 9, '#f5c92e', 'center', false); }
+    txt(label, cx, y + st / 2 + 2.5, st < 22 ? 10 : 11, sel ? '#fff3a0' : '#d9d4f0', 'center', false);
+    menuRects.push({ x, y, w, h: st - 4 });
   });
 }
 function drawTitle() {
@@ -2365,39 +2555,56 @@ function callout(x, y, tx, ty, title, desc, col, align = 'left') {
   if (desc) txt(desc, bx + 6, by + 21.5, 7.5, '#f4efe4', 'left', false);
 }
 function keycap(x, y, w, label) { rectK(x, y, w, 16, '#140e1c'); rectK(x + 1, y + 1, w - 2, 13, '#3b3570'); rectK(x + 1, y + 1, w - 2, 2, '#5a54a0'); txt(label, x + w / 2, y + 12, 9, '#ffffff', 'center', false); }
+function badge(x, y, n, col) { dot(x, y, 6.5, col, '#140e1c', 1.5); txt(String(n), x, y + 3.4, 9, '#140e1c', 'center', false); }
+function hiBox(x, y, w, h, col) { rectK(x - 1, y - 1, w + 2, 1, col); rectK(x - 1, y + h, w + 2, 1, col); rectK(x - 1, y, 1, h, col); rectK(x + w, y, 1, h, col); }
 function drawHelp() {
-  rectK(0, 0, W, H, 'rgba(10,8,26,0.78)');
-  txt('조작법', W / 2, 26, 16, '#fff3a0', 'center');
-  txt('실제 화면 그대로 · 이렇게 싸우면 됩니다', W / 2, 40, 8.5, '#9c96c4', 'center', false);
-  // HUD mock
+  rectK(0, 0, W, H, 'rgba(10,8,26,0.8)');
+  txt('조작법', W / 2, 22, 15, '#fff3a0', 'center');
+  txt('번호를 보고 아래 설명과 맞춰 보세요', W / 2, 34, 8, '#9c96c4', 'center', false);
+  const C = ['#f5c92e', '#ff7a6e', '#6ab4ff', '#d9d4f0', '#c9c4e8', '#ff8a7a', '#9ad4ff', '#fff08a', '#8fe39a', '#e8ecf4'];
+  const rows = [
+    ['목숨', '구간마다 3개 · 다 잃으면 구간 처음부터'],
+    ['HP 체력', '맞으면 줄어요 · 0이 되면 목숨 -1'],
+    ['MP 폭주 게이지', '때리고 맞으면 차요 · 어깨빵·궁극기에 사용'],
+    ['일시정지', '메뉴 · 소리 · 다시 하기'],
+    ['이동', isTouch ? '왼쪽 화면 아무 곳이나 눌러 끌기' : '방향키 / WASD'],
+    ['공격', '연타하면 3단 콤보 · 마지막 한 방은 날려버림'],
+    ['어깨빵', `MP ${DASH_MP} · 무적 돌진 + 몸통 박치기`],
+    ['궁극기', 'MP 100: 대회전 · MP 200: 화면 전체 난무'],
+    ['안내', '초록 표시 승객 옆에서 3번 → 보상'],
+    ['아이템', '호루라기 등 주운 아이템 사용'],
+  ];
+  // 1~4: HUD mock (same as in-game)
   const hx = 8, hy = 44;
   drawHudTL(hx, hy, 3, 72, 130);
-  callout(hx + 70, hy + 7, 178, 58, '목숨', '구간마다 3개 · 다 잃으면 구간 처음부터', '#f5c92e');
-  callout(hx + 136, hy + 22, 178, 86, 'HP 체력 (빨강)', '맞으면 줄어요 · 0이면 목숨 -1', '#ff7a6e');
-  callout(hx + 136, hy + 35, 178, 114, 'MP 폭주 게이지 (파랑)', '때리고 맞으면 차요 · 100=궁극기 1단 · 200=2단', '#6ab4ff');
-  rectK(hx, hy + 50, 26, 20, '#0e0a1e'); rectK(hx + 8, hy + 55, 3, 10, '#f4efe4'); rectK(hx + 15, hy + 55, 3, 10, '#f4efe4');
-  callout(hx + 13, hy + 72, 30, 146, 'Ⅱ 일시정지', '메뉴 · 소리 · 다시하기', '#d9d4f0');
+  hiBox(hx + 33, hy + 3, 70, 12, C[0]); badge(hx + 110, hy + 9, 1, C[0]);
+  hiBox(hx + 32, hy + 18, 118, 9, C[1]); badge(hx + 160, hy + 22, 2, C[1]);
+  hiBox(hx + 32, hy + 30, 118, 9, C[2]); badge(hx + 160, hy + 35, 3, C[2]);
+  rectK(hx, hy + 52, 26, 20, '#0e0a1e'); rectK(hx + 8, hy + 57, 3, 10, '#f4efe4'); rectK(hx + 15, hy + 57, 3, 10, '#f4efe4');
+  hiBox(hx, hy + 52, 26, 20, C[3]); badge(hx + 34, hy + 62, 4, C[3]);
   const c = cvs.getBoundingClientRect();
-  const toG = r => ({ x: (r.left + r.width / 2 - c.left) / c.width * W, y: (r.top + r.height / 2 - c.top) / c.height * H, w: r.width / c.width * W, h: r.height / c.height * H });
+  const toG = r => ({ x: (r.left - c.left) / c.width * W, y: (r.top - c.top) / c.height * H, w: r.width / c.width * W, h: r.height / c.height * H });
+  let legendR = 376;
   if (isTouch) {
-    const info = { atk: ['공격', '연타: 3단 콤보'], dodge: ['회피', '무적 구르기'], ult: ['궁극기', 'MP 100 이상'], guide: ['안내', '초록 승객 옆에서 3번'] };
-    const place = { guide: [-50, -24], ult: [-56, -20], dodge: [-50, 2], atk: [-112, -22] };
-    document.querySelectorAll('.rb').forEach(btn => {
-      const k = btn.dataset.k, r = btn.getBoundingClientRect(); if (!r.width) return;
-      const p = toG(r), [ox, oy] = place[k];
-      const tx = clamp(p.x - p.w / 2 + ox, 150, W - 20), ty = clamp(p.y + oy, 60, H - 14);
-      callout(p.x - p.w / 2, p.y, tx, ty, info[k][0], info[k][1], k === 'atk' ? '#ff8a7a' : k === 'dodge' ? '#9ad4ff' : k === 'ult' ? '#fff08a' : '#8fe39a', 'right');
-    });
     const sr = document.getElementById('stick').getBoundingClientRect();
-    if (sr.width) { const p = toG(sr); callout(p.x + p.w / 2, p.y, Math.min(W - 160, p.x + p.w / 2 + 40), p.y - 30, '이동 조이스틱', '왼쪽 아무 곳이나 눌러 끌기 · 많이 밀수록 빨라요', '#d9d4f0'); }
+    if (sr.width) { const q = toG(sr); badge(q.x + q.w - 4, q.y + 2, 5, C[4]); }
+    const idx = { atk: 6, dodge: 7, ult: 8, guide: 9, item: 10 };
+    document.querySelectorAll('.rb').forEach(btn => { const r = btn.getBoundingClientRect(); if (!r.width) return; const q = toG(r), k = btn.dataset.k, n = idx[k]; if (k === 'atk' || k === 'dodge') badge(Math.min(W - 8, q.x - 6), q.y + q.h / 2, n, C[n - 1]); else badge(Math.min(W - 8, q.x + q.w / 2), Math.max(8, q.y - 6), n, C[n - 1]); legendR = Math.min(legendR, q.x - 6); });
   } else {
-    const ax = 40, ay = 214;
-    keycap(ax + 20, ay, 18, '↑'); keycap(ax, ay + 18, 18, '←'); keycap(ax + 20, ay + 18, 18, '↓'); keycap(ax + 40, ay + 18, 18, '→');
-    callout(ax + 60, ay + 20, 112, 196, '이동', '방향키 / WASD', '#d9d4f0');
-    const keys = [['Z', '공격', '연타 3단 콤보', '#ff8a7a'], ['X', '회피', '무적 구르기', '#9ad4ff'], ['C', '궁극기', 'MP 100+', '#fff08a'], ['V', '안내', '초록 승객', '#8fe39a']];
-    keys.forEach(([k, t, d, col], i) => { const x = 250 + i * 54; keycap(x, 238, 22, k); callout(x + 11, 238, x - 2, 190 + (i % 2) * 26, t, d, col); });
-    keycap(110, 238, 28, 'Esc'); txt('일시정지', 142, 250, 8, '#d9d4f0', 'left', false);
+    const ax = 30, ay = 214;
+    keycap(ax + 20, ay, 18, '↑'); keycap(ax, ay + 18, 18, '←'); keycap(ax + 20, ay + 18, 18, '↓'); keycap(ax + 40, ay + 18, 18, '→'); badge(ax + 64, ay + 6, 5, C[4]);
+    [['Z', 6], ['X', 7], ['C', 8], ['V', 9], ['F', 10]].forEach(([k, n], i) => { const x = 384 + (i % 3) * 30, y = 200 + Math.floor(i / 3) * 32; keycap(x, y + 8, 22, k); badge(x + 11, y, n, C[n - 1]); });
+    txt('Esc = 일시정지', 384, 268, 7.5, '#9c96c4', 'left', false);
   }
+  // legend
+  const lx = 176, lw = Math.max(170, legendR - lx), ly = 48, rh = 21;
+  rectK(lx - 4, ly - 6, lw + 8, rows.length * rh + 8, 'rgba(14,10,30,0.92)');
+  rows.forEach(([t, d], i) => {
+    const y = ly + i * rh;
+    badge(lx + 7, y + 6, i + 1, C[i]);
+    txt(t, lx + 18, y + 9, 10, C[i], 'left');
+    txt(d, lx + 18, y + 18.5, 7.2, '#f4efe4', 'left', false);
+  });
 }
 function drawHelpOld() {
   rectK(60, 136, 360, 96, 'rgba(10,8,26,0.92)'); rectK(60, 136, 360, 2, '#2b3f9c');
@@ -2411,7 +2618,7 @@ function drawOver() {
   txt('조퇴 처리되었습니다…', W / 2, 104, 22, '#ff8a7a', 'center');
   txt('목숨을 모두 잃었다. 바나나우유가 간절하다.', W / 2, 124, 9, '#d9d4f0', 'center', false);
   if ((tick >> 5) % 2) txt(isTouch ? `화면을 눌러 ${STG.n}구간 처음부터` : `ENTER: ${STG.n}구간 처음부터`, W / 2, 158, 11, '#fff3a0', 'center');
-  txt(isTouch ? '회피 버튼: 메인 메뉴로' : 'X: 메인 메뉴로', W / 2, 176, 9, '#d9d4f0', 'center', false);
+  txt(isTouch ? '어깨빵 버튼: 메인 메뉴로' : 'X: 메인 메뉴로', W / 2, 176, 9, '#d9d4f0', 'center', false);
   txt('목숨은 구간마다 3개 · 더 늘지 않으니 아껴 쓰세요', W / 2, 192, 8, '#9c96c4', 'center', false);
 }
 function drawLifeLost() {
@@ -2508,6 +2715,9 @@ function step() {
   if (gb) gb.classList.toggle('ready', !!(game && state === 'play' && game.helpers && nearHelper()));
   document.body.classList.toggle('menu', state === 'title' || state === 'pause');
   document.body.classList.toggle('helpmode', state === 'title' && menu.kind === 'help');
+  const th = state === 'play' ? tutHint() : null;
+  document.querySelectorAll('.rb').forEach(b => b.classList.toggle('hint', th === b.dataset.k));
+  const stk = document.getElementById('stick'); if (stk) stk.classList.toggle('hint', th === 'stick');
   if (isTouch && state === 'play' && document.body.classList.contains('portrait')) openPause();
   document.body.classList.toggle('danger', !!(game && state === 'play' && game.p.hp > 0 && game.p.hp <= 10));
 }
@@ -2520,6 +2730,7 @@ function render() {
   const cx = drawWorld();
   ctx.drawImage(buf, 0, 0, cvs.width, cvs.height);
   drawTextLayer(cx);
+  if (game.tut && state !== 'dialog') drawTutPanel(cx);
   if (state === 'dialog') drawDialog();
   if (state === 'over') drawOver();
   if (state === 'lifelost') drawLifeLost();
@@ -2527,6 +2738,19 @@ function render() {
   if (state === 'stagecard') drawStageCard();
   if (state === 'stageclear') drawStageClear();
   if (A.muted && state === 'play') txt('소리 꺼짐', W - 8, 60, 8, '#9c96c4', 'right');
+}
+
+function mkItemIcons() {
+  const px = (rows, map) => mkCanvas(16, 16, c => rows.forEach((r, y) => [...r].forEach((ch, x) => { if (map[ch]) { c.fillStyle = map[ch]; c.fillRect(x, y, 1, 1); } })));
+  const O = '#140e1c';
+  const defs = {
+    pw_long: [['..............#.', '.............#W#', '............#RW#', '...........#RR#.', '..........#RR#..', '.........#RR#...', '........#RR#....', '.......#RR#.....', '......#RR#......', '.....#RR#.......', '....#GG#..YY....', '...#GG#..YYYY...', '..#GG#....YY....', '..#G#...........', '...#............', '................'], { '#': O, W: '#ffffff', R: '#ff4b3a', G: '#8a8a96', Y: '#fff3a0' }],
+    whistle: [['................', '...######.......', '..#SSSSSS#......', '.#SSWSSSSS####..', '.#SSSSSSSSSSSS#.', '.#SS###SSSSSSS#.', '.#SS#.#SSS####..', '.#SSS#SSSS#.....', '..#SSSSSS#......', '...######.......', '....#...........', '...#Y#..........', '..#Y#...........', '..#Y#...........', '...#............', '................'], { '#': O, S: '#c8ccd8', W: '#ffffff', Y: '#ff6a5a' }],
+    pw_led: [['..............#.', '.............#W#', '............#CW#', '...........#CC#.', '..........#CC#..', '...YY....#CC#...', '...Y....#CC#....', '..YYY..#CC#.....', '....Y.#CC#......', '...Y.#CC#.......', '....#GG#........', '...#GG#.........', '..#GG#..........', '..#G#...........', '...#............', '................'], { '#': O, W: '#ffffff', C: '#6ae8ff', G: '#8a8a96', Y: '#fff3a0' }],
+    pw_spin: [['.....######.....', '...##OOOOOO##...', '..#O#......#O#..', '.#O#...##...#O#.', '.#O...#RR#...O#.', '#O...#RRRR#...O#', '#O..#RRWWRR#..O#', '#O..#RRWWRR#..O#', '#O...#RRRR#...O#', '.#O...#RR#...O#.', '.#O#...##...#O#.', '..#O#......#O#..', '...##OOOOOO##...', '.....######.....', '................', '................'], { '#': O, O: '#ffb04a', R: '#e8403a', W: '#ffffff' }],
+    pw_fire: [['.........Y......', '........YFY.....', '.......YFFY#....', '.......YFF#W#...', '........F#RW#...', '.......#RR#.....', '......#RR#......', '.....#RR#.......', '....#RR#........', '...#GG#.........', '..#GG#..........', '..#G#...........', '...#............', '................', '................', '................'], { '#': O, W: '#ffffff', R: '#ff4b3a', G: '#8a8a96', Y: '#ffd040', F: '#ff8a2a' }],
+  };
+  Object.entries(defs).forEach(([k, [rows, map]]) => { const im = px(rows, map); IM[k] = { im, f: im, wh: im, whf: im, w: 16, h: 16 }; });
 }
 let last = performance.now(), acc = 0;
 function frame(t) {
@@ -2539,9 +2763,9 @@ function frame(t) {
 fit();
 prerender();
 Promise.all([loadAll(), (document.fonts && document.fonts.load ? document.fonts.load('20px "Do Hyeon"').catch(() => {}) : Promise.resolve())])
-  .then(() => { newGame(0); fit(); state = 'title'; cvs.focus(); });
+  .then(() => { mkItemIcons(); newGame(0); fit(); state = 'title'; cvs.focus(); });
 requestAnimationFrame(frame);
-window.__gongik = { get state() { return state; }, get game() { return game; }, get stg() { return STG; }, press, release, keys, joy, startStage, menuKind: () => menu.kind, set og(v) { OGM = v; }, set progress(v) { progress = v; } };
+window.__gongik = { get state() { return state; }, get game() { return game; }, get stg() { return STG; }, press, release, keys, joy, startStage, menuKind: () => menu.kind, startTut: () => startTutorial(), openHelp: () => { menu = { kind: "help", sel: 0 }; }, set og(v) { OGM = v; }, set progress(v) { progress = v; } };
 })();
 </script>
 
